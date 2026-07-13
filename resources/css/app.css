@@ -1,0 +1,182 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    h1 {
+        @apply text-4xl font-semibold tracking-normal text-zinc-950 md:text-5xl;
+    }
+
+    h2 {
+        @apply text-2xl font-semibold text-zinc-950;
+    }
+
+    h3 {
+        @apply text-lg font-semibold text-zinc-950;
+    }
+
+    p {
+        @apply leading-7 text-zinc-600;
+    }
+}
+
+@layer components {
+    .nav-link {
+        @apply rounded px-3 py-2 text-zinc-700 hover:bg-zinc-100;
+    }
+
+    .icon-btn {
+        @apply inline-flex h-9 w-9 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100;
+    }
+
+    .admin-nav {
+        @apply rounded-md px-3 py-2 text-slate-700 hover:bg-slate-100;
+    }
+
+    .hero {
+        @apply border-b border-zinc-200 bg-white;
+    }
+
+    .hero p {
+        @apply mt-5 max-w-2xl text-lg text-zinc-600;
+    }
+
+    .section {
+        @apply mx-auto max-w-6xl px-5 py-12;
+    }
+
+    .narrow {
+        @apply max-w-2xl;
+    }
+
+    .section-head {
+        @apply mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between;
+    }
+
+    .grid-gap {
+        @apply grid gap-6 md:grid-cols-3;
+    }
+
+    .grid-gap article {
+        @apply border-l-2 border-emerald-700 pl-5;
+    }
+
+    .panel,
+    .form-panel {
+        @apply rounded-lg border border-zinc-200 bg-white p-5 shadow-sm;
+    }
+
+    .form-layout {
+        @apply grid gap-8 lg:grid-cols-[.8fr_1.2fr];
+    }
+
+    .form-panel {
+        @apply grid gap-4 md:grid-cols-2;
+    }
+
+    .metric {
+        @apply rounded-md border border-zinc-200 bg-stone-50 p-4;
+    }
+
+    .metric strong {
+        @apply block text-3xl font-semibold text-zinc-950;
+    }
+
+    .metric span {
+        @apply mt-1 block text-sm text-zinc-600;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+        @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold transition;
+    }
+
+    .btn-primary {
+        @apply bg-emerald-700 text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60;
+    }
+
+    .btn-secondary {
+        @apply border border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-100;
+    }
+
+    .choice {
+        @apply flex min-h-20 items-center justify-center gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-5 text-sm font-semibold text-zinc-800 transition hover:border-sky-700;
+    }
+
+    .choice-active {
+        @apply border-sky-700 bg-sky-700 text-white;
+    }
+
+    .input {
+        @apply min-h-11 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none ring-emerald-700/20 focus:border-emerald-700 focus:ring-4;
+    }
+
+    textarea.input {
+        @apply min-h-28;
+    }
+
+    .check {
+        @apply flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700;
+    }
+
+    .screen-card {
+        @apply rounded-lg border border-zinc-200 bg-white p-5 shadow-sm transition hover:border-emerald-700;
+    }
+
+    .pill {
+        @apply rounded bg-zinc-100 px-2 py-1 text-zinc-700;
+    }
+
+    .admin-table {
+        @apply overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm;
+    }
+
+    .admin-table table {
+        @apply w-full border-collapse text-left text-sm;
+    }
+
+    .admin-table th {
+        @apply border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase text-slate-500;
+    }
+
+    .admin-table td {
+        @apply border-b border-slate-100 px-4 py-3 align-top text-slate-700;
+    }
+
+    .admin-table td span {
+        @apply block text-xs text-slate-500;
+    }
+
+    .dark header,
+    .dark footer,
+    .dark .panel,
+    .dark .form-panel,
+    .dark .screen-card,
+    .dark .choice,
+    .dark .input,
+    .dark .check {
+        @apply border-slate-700 bg-slate-900 text-slate-100;
+    }
+
+    .dark h1,
+    .dark h2,
+    .dark h3 {
+        @apply text-white;
+    }
+
+    .dark p,
+    .dark footer,
+    .dark .nav-link,
+    .dark .pill {
+        @apply text-slate-300;
+    }
+
+    .dark .pill,
+    .dark .metric {
+        @apply border-slate-700 bg-slate-800;
+    }
+}

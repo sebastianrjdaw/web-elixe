@@ -1,0 +1,12 @@
+.git
+.agents
+.codex
+node_modules
+vendor
+storage/logs/*.log
+public/build
+public/hot
+.env
+.phpunit.cache
+npm-debug.log
+yarn-error.log
