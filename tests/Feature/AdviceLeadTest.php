@@ -52,6 +52,74 @@ class AdviceLeadTest extends TestCase
         Mail::assertNotQueued(LeadConfirmation::class);
     }
 
+    public function test_venue_advice_requires_venue_specific_fields(): void
+    {
+        Mail::fake();
+        config(['services.turnstile.enabled' => false]);
+
+        $response = $this
+            ->from(route('advice'))
+            ->post(route('advice.store'), $this->validVenuePayload([
+                'business_name' => '',
+                'province' => '',
+                'municipality' => '',
+                'location_type' => '',
+            ]));
+
+        $response
+            ->assertRedirect(route('advice'))
+            ->assertSessionHasErrors(['business_name', 'province', 'municipality', 'location_type'])
+            ->assertSessionHasInput('contact_name', 'Ana Garcia');
+
+        $this->assertDatabaseCount('leads', 0);
+    }
+
+    public function test_advertiser_advice_requires_advertiser_specific_fields(): void
+    {
+        Mail::fake();
+        config(['services.turnstile.enabled' => false]);
+
+        $payload = $this->validAdvertiserPayload([
+            'company_name' => '',
+            'activity_sector' => '',
+            'interest_zone' => '',
+            'budget_range' => '',
+        ]);
+
+        $this
+            ->from(route('advice'))
+            ->post(route('advice.store'), $payload)
+            ->assertRedirect(route('advice'))
+            ->assertSessionHasErrors(['company_name', 'activity_sector', 'interest_zone', 'budget_range'])
+            ->assertSessionHasInput('contact_name', 'Bruno Lopez');
+
+        $this->assertDatabaseCount('leads', 0);
+    }
+
+    public function test_other_advice_requires_message(): void
+    {
+        Mail::fake();
+        config(['services.turnstile.enabled' => false]);
+
+        $this
+            ->from(route('advice'))
+            ->post(route('advice.store'), [
+                'type' => 'other',
+                'contact_name' => 'Lara Perez',
+                'email' => 'lara@example.test',
+                'phone' => '678123456',
+                'preferred_contact_method' => 'email',
+                'preferred_call_time' => 'indiferente',
+                'message' => '',
+                'privacy_accepted' => '1',
+            ])
+            ->assertRedirect(route('advice'))
+            ->assertSessionHasErrors('message')
+            ->assertSessionHasInput('contact_name', 'Lara Perez');
+
+        $this->assertDatabaseCount('leads', 0);
+    }
+
     public function test_advice_form_queues_internal_notification_and_user_confirmation(): void
     {
         Mail::fake();
@@ -94,6 +162,24 @@ class AdviceLeadTest extends TestCase
             'preferred_contact_method' => 'llamada',
             'preferred_call_time' => 'manana',
             'message' => 'Quiero valorar una pantalla en el local.',
+            'privacy_accepted' => '1',
+        ], $overrides);
+    }
+
+    private function validAdvertiserPayload(array $overrides = []): array
+    {
+        return array_merge([
+            'type' => 'advertiser',
+            'company_name' => 'Comercio Sur',
+            'contact_name' => 'Bruno Lopez',
+            'email' => 'bruno@example.test',
+            'phone' => '678123456',
+            'activity_sector' => 'Comercio local',
+            'interest_zone' => 'A Coruna',
+            'budget_range' => '100_300',
+            'preferred_contact_method' => 'llamada',
+            'preferred_call_time' => 'tarde',
+            'message' => 'Quiero una propuesta local.',
             'privacy_accepted' => '1',
         ], $overrides);
     }

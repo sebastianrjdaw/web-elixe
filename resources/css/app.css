@@ -115,6 +115,14 @@
         @apply min-h-11 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none ring-emerald-700/20 focus:border-emerald-700 focus:ring-4;
     }
 
+    .input-error {
+        @apply border-red-500 ring-red-500/20 focus:border-red-600;
+    }
+
+    .field-error {
+        @apply mt-1 text-sm font-medium text-red-700;
+    }
+
     textarea.input {
         @apply min-h-28;
     }

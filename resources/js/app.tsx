@@ -470,6 +470,61 @@ function AdvicePage({ screens, turnstileSiteKey }: { screens: Screen[]; turnstil
 
     const selectedScreens = screens.filter((screen) => form.data.selected_screen_ids.includes(screen.id));
     const toggleScreen = (id: number) => form.setData('selected_screen_ids', form.data.selected_screen_ids.includes(id) ? form.data.selected_screen_ids.filter((value) => value !== id) : [...form.data.selected_screen_ids, id]);
+    const errors = form.errors as Record<string, string>;
+    const error = (field: string) => errors[field] ? <p className="field-error">{errors[field]}</p> : null;
+    const inputClass = (field: string) => `input ${errors[field] ? 'input-error' : ''}`;
+    const validateClient = () => {
+        const nextErrors: Record<string, string> = {};
+        const required = (field: keyof typeof form.data, label: string) => {
+            const value = form.data[field];
+            if (value === null || value === undefined || value === '' || value === false) {
+                nextErrors[field] = `El campo ${label} es obligatorio.`;
+            }
+        };
+
+        if (form.data.type === 'venue') {
+            required('business_name', 'nombre del local');
+            required('province', 'provincia');
+            required('municipality', 'municipio');
+            required('location_type', 'tipo de local');
+        }
+
+        if (form.data.type === 'advertiser') {
+            required('company_name', 'nombre de empresa');
+            required('activity_sector', 'sector de actividad');
+            required('interest_zone', 'zona de interes');
+            required('budget_range', 'presupuesto orientativo');
+        }
+
+        if (form.data.type === 'other') {
+            required('message', 'mensaje');
+        }
+
+        required('contact_name', 'nombre de contacto');
+        required('phone', 'telefono');
+        required('email', 'email');
+        required('preferred_contact_method', 'preferencia de contacto');
+        required('preferred_call_time', 'horario preferido');
+        required('privacy_accepted', 'politica de privacidad');
+
+        if (form.data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.data.email)) {
+            nextErrors.email = 'Introduce un email valido.';
+        }
+
+        if (form.data.phone && !/^(\+34|0034)?[6789]\d{8}$/.test(form.data.phone)) {
+            nextErrors.phone = 'Introduce un telefono espanol valido.';
+        }
+
+        if (Object.keys(nextErrors).length > 0) {
+            form.setError(nextErrors);
+
+            return false;
+        }
+
+        form.clearErrors();
+
+        return true;
+    };
 
     return (
         <Layout>
@@ -478,59 +533,59 @@ function AdvicePage({ screens, turnstileSiteKey }: { screens: Screen[]; turnstil
                     <div><h1>Solicitar asesoramiento</h1><p>Cuéntanos qué necesitas y el equipo de Elixe revisará tu solicitud para preparar el siguiente paso.</p></div>
                 </div>
                 <div className="grid gap-4 md:grid-cols-3">
-                    <button type="button" className={`choice ${form.data.type === 'venue' ? 'choice-active' : ''}`} onClick={() => form.setData('type', 'venue')}>
+                    <button type="button" className={`choice ${form.data.type === 'venue' ? 'choice-active' : ''}`} onClick={() => { form.setData('type', 'venue'); form.clearErrors(); }}>
                         <Store className="h-5 w-5" />Tengo un local
                     </button>
-                    <button type="button" className={`choice ${form.data.type === 'advertiser' ? 'choice-active' : ''}`} onClick={() => form.setData('type', 'advertiser')}>
+                    <button type="button" className={`choice ${form.data.type === 'advertiser' ? 'choice-active' : ''}`} onClick={() => { form.setData('type', 'advertiser'); form.clearErrors(); }}>
                         <Building2 className="h-5 w-5" />Quiero anunciarme
                     </button>
-                    <button type="button" className={`choice ${form.data.type === 'other' ? 'choice-active' : ''}`} onClick={() => form.setData('type', 'other')}>
+                    <button type="button" className={`choice ${form.data.type === 'other' ? 'choice-active' : ''}`} onClick={() => { form.setData('type', 'other'); form.clearErrors(); }}>
                         <Send className="h-5 w-5" />Tengo otra consulta
                     </button>
                 </div>
-                <form className="form-panel mt-8" onSubmit={(event) => { event.preventDefault(); form.post('/asesoramiento'); }}>
-                    {form.data.type === 'venue' && <input className="input" placeholder="Nombre del local" value={form.data.business_name} onChange={(e) => form.setData('business_name', e.target.value)} />}
-                    {form.data.type === 'advertiser' && <input className="input" placeholder="Nombre de empresa" value={form.data.company_name} onChange={(e) => form.setData('company_name', e.target.value)} />}
-                    <input className="input" placeholder="Nombre de contacto" value={form.data.contact_name} onChange={(e) => form.setData('contact_name', e.target.value)} />
-                    <input className="input" placeholder="Telefono" value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} />
-                    <input className="input" placeholder="Email" value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} />
-                    <input className="input" placeholder="Provincia" value={form.data.province} onChange={(e) => form.setData('province', e.target.value)} />
-                    <input className="input" placeholder="Municipio" value={form.data.municipality} onChange={(e) => form.setData('municipality', e.target.value)} />
-                    {form.data.type === 'venue' && <select className="input" value={form.data.location_type} onChange={(e) => form.setData('location_type', e.target.value)}>
+                <form className="form-panel mt-8" noValidate onSubmit={(event) => { event.preventDefault(); if (validateClient()) form.post('/asesoramiento'); }}>
+                    {form.data.type === 'venue' && <div><input className={inputClass('business_name')} placeholder="Nombre del local *" value={form.data.business_name} onChange={(e) => form.setData('business_name', e.target.value)} />{error('business_name')}</div>}
+                    {form.data.type === 'advertiser' && <div><input className={inputClass('company_name')} placeholder="Nombre de empresa *" value={form.data.company_name} onChange={(e) => form.setData('company_name', e.target.value)} />{error('company_name')}</div>}
+                    <div><input className={inputClass('contact_name')} placeholder="Nombre de contacto *" value={form.data.contact_name} onChange={(e) => form.setData('contact_name', e.target.value)} />{error('contact_name')}</div>
+                    <div><input className={inputClass('phone')} placeholder="Telefono *" value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} />{error('phone')}</div>
+                    <div><input className={inputClass('email')} placeholder="Email *" value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} />{error('email')}</div>
+                    <div><input className={inputClass('province')} placeholder={form.data.type === 'venue' ? 'Provincia *' : 'Provincia'} value={form.data.province} onChange={(e) => form.setData('province', e.target.value)} />{error('province')}</div>
+                    <div><input className={inputClass('municipality')} placeholder={form.data.type === 'venue' ? 'Municipio *' : 'Municipio'} value={form.data.municipality} onChange={(e) => form.setData('municipality', e.target.value)} />{error('municipality')}</div>
+                    {form.data.type === 'venue' && <div><select className={inputClass('location_type')} value={form.data.location_type} onChange={(e) => form.setData('location_type', e.target.value)}>
                         <option value="">Tipo de local</option>
                         {['bar', 'restaurante', 'cafeteria', 'lavanderia', 'gimnasio', 'peluqueria', 'clinica', 'tienda', 'hotel', 'supermercado', 'oficina', 'centro_comercial', 'farmacia', 'autoescuela', 'estanco', 'panaderia', 'coworking', 'otro'].map((type) => <option key={type} value={type}>{type}</option>)}
-                    </select>}
+                    </select>{error('location_type')}</div>}
                     {form.data.type === 'venue' && <label className="check"><input type="checkbox" checked={form.data.has_screen} onChange={(e) => form.setData('has_screen', e.target.checked)} /> Tiene pantalla actualmente</label>}
                     {form.data.type === 'venue' && <label className="check"><input type="checkbox" checked={form.data.wants_elixe_screen} onChange={(e) => form.setData('wants_elixe_screen', e.target.checked)} /> Quiere que Elixe proporcione pantalla</label>}
                     {form.data.type === 'venue' && <label className="check"><input type="checkbox" checked={form.data.wants_ad_control} onChange={(e) => form.setData('wants_ad_control', e.target.checked)} /> Quiere controlar publicidad</label>}
-                    {form.data.type === 'advertiser' && <select className="input" value={form.data.activity_sector} onChange={(e) => form.setData('activity_sector', e.target.value)}>
+                    {form.data.type === 'advertiser' && <div><select className={inputClass('activity_sector')} value={form.data.activity_sector} onChange={(e) => form.setData('activity_sector', e.target.value)}>
                         <option value="">Sector de actividad</option>
                         {['Hosteleria', 'Comercio local', 'Salud y bienestar', 'Servicios profesionales', 'Inmobiliaria', 'Automocion', 'Educacion', 'Eventos', 'Turismo', 'Ocio', 'Otro'].map((sector) => <option key={sector} value={sector}>{sector}</option>)}
-                    </select>}
-                    {form.data.type === 'advertiser' && <input className="input" placeholder="Zona de interes" value={form.data.interest_zone} onChange={(e) => form.setData('interest_zone', e.target.value)} />}
-                    {form.data.type === 'advertiser' && <select className="input" value={form.data.budget_range} onChange={(e) => form.setData('budget_range', e.target.value)}>
+                    </select>{error('activity_sector')}</div>}
+                    {form.data.type === 'advertiser' && <div><input className={inputClass('interest_zone')} placeholder="Zona de interes *" value={form.data.interest_zone} onChange={(e) => form.setData('interest_zone', e.target.value)} />{error('interest_zone')}</div>}
+                    {form.data.type === 'advertiser' && <div><select className={inputClass('budget_range')} value={form.data.budget_range} onChange={(e) => form.setData('budget_range', e.target.value)}>
                         <option value="">Presupuesto orientativo</option>
                         <option value="menos_100">Menos de 100 EUR</option>
                         <option value="100_300">100 - 300 EUR</option>
                         <option value="mas_300">Mas de 300 EUR</option>
-                    </select>}
-                    <select className="input" value={form.data.preferred_contact_method} onChange={(e) => form.setData('preferred_contact_method', e.target.value)}>
+                    </select>{error('budget_range')}</div>}
+                    <div><select className={inputClass('preferred_contact_method')} value={form.data.preferred_contact_method} onChange={(e) => form.setData('preferred_contact_method', e.target.value)}>
                         <option value="llamada">Llamada</option>
                         <option value="email">Email</option>
                         <option value="whatsapp">WhatsApp</option>
                         <option value="indiferente">Me da igual</option>
-                    </select>
-                    <select className="input" value={form.data.preferred_call_time} onChange={(e) => form.setData('preferred_call_time', e.target.value)}>
+                    </select>{error('preferred_contact_method')}</div>
+                    <div><select className={inputClass('preferred_call_time')} value={form.data.preferred_call_time} onChange={(e) => form.setData('preferred_call_time', e.target.value)}>
                         <option value="manana">Mañana</option>
                         <option value="mediodia">Mediodia</option>
                         <option value="tarde">Tarde</option>
                         <option value="indiferente">Me da igual</option>
-                    </select>
+                    </select>{error('preferred_call_time')}</div>
                     {form.data.type === 'advertiser' && selectedScreens.length > 0 && <p className="md:col-span-2 text-sm text-zinc-600">Pantallas seleccionadas: {selectedScreens.map((screen) => screen.name).join(', ')}</p>}
                     {form.data.type === 'advertiser' && <div className="md:col-span-2"><ScreenGrid screens={screens} selectable selected={form.data.selected_screen_ids} onToggle={toggleScreen} /></div>}
-                    <textarea className="input md:col-span-2" placeholder="Mensaje libre" value={form.data.message} onChange={(e) => form.setData('message', e.target.value)} />
-                    {turnstileSiteKey && <input className="input md:col-span-2" placeholder="Token Turnstile" value={form.data.cf_turnstile_response} onChange={(e) => form.setData('cf_turnstile_response', e.target.value)} />}
-                    <label className="check md:col-span-2"><input type="checkbox" checked={form.data.privacy_accepted} onChange={(e) => form.setData('privacy_accepted', e.target.checked)} /> Acepto la politica de privacidad y el tratamiento de mis datos para que Elixe pueda contactar conmigo.</label>
+                    <div className="md:col-span-2"><textarea className={inputClass('message')} placeholder={form.data.type === 'other' ? 'Mensaje libre *' : 'Mensaje libre'} value={form.data.message} onChange={(e) => form.setData('message', e.target.value)} />{error('message')}</div>
+                    {turnstileSiteKey && <div className="md:col-span-2"><input className={inputClass('cf_turnstile_response')} placeholder="Token Turnstile" value={form.data.cf_turnstile_response} onChange={(e) => form.setData('cf_turnstile_response', e.target.value)} />{error('cf_turnstile_response')}</div>}
+                    <div className="md:col-span-2"><label className={`check ${errors.privacy_accepted ? 'input-error' : ''}`}><input type="checkbox" checked={form.data.privacy_accepted} onChange={(e) => form.setData('privacy_accepted', e.target.checked)} /> Acepto la politica de privacidad y el tratamiento de mis datos para que Elixe pueda contactar conmigo.</label>{error('privacy_accepted')}</div>
                     <button className="btn-primary md:col-span-2" disabled={form.processing}><Send className="h-4 w-4" /> Enviar solicitud</button>
                 </form>
             </section>
