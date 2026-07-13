@@ -7,7 +7,7 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { createRoot } from 'react-dom/client';
-import { ArrowRight, Building2, Check, MapPin, Monitor, Moon, Send, ShieldCheck, Store, Sun } from 'lucide-react';
+import { ArrowDown, ArrowRight, Building2, Check, ChevronRight, Globe2, MapPin, Menu, Monitor, Moon, Radio, Send, ShieldCheck, Sparkles, Store, Sun, Users, Waves, X } from 'lucide-react';
 import React, { PropsWithChildren, useEffect, useMemo, useState } from 'react';
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
 
@@ -122,36 +122,68 @@ type Setting = {
     is_public: boolean;
 };
 
+function Brand() {
+    return (
+        <span className="brand-mark">
+            <span className="brand-icon" aria-hidden="true"><Waves className="h-5 w-5" /></span>
+            <span>ELIXE<small>publicidad local</small></span>
+        </span>
+    );
+}
+
 function Layout({ children }: PropsWithChildren) {
-    const [dark, setDark] = useState(false);
+    const [dark, setDark] = useState(() => typeof window !== 'undefined' && localStorage.getItem('elixe.theme') === 'dark');
+    const [menuOpen, setMenuOpen] = useState(false);
+    const isGalician = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('lang') === 'gl';
+    const languageHref = typeof window !== 'undefined'
+        ? `${window.location.pathname}${isGalician ? '' : '?lang=gl'}`
+        : '?lang=gl';
+
+    useEffect(() => {
+        localStorage.setItem('elixe.theme', dark ? 'dark' : 'light');
+    }, [dark]);
+
+    const navigation = [
+        { href: '/', label: 'Inicio' },
+        { href: '/locales', label: 'Para locales' },
+        { href: '/anunciantes', label: 'Para anunciantes' },
+        { href: '/red-de-pantallas', label: 'Red de pantallas' },
+    ];
 
     return (
-        <div className={dark ? 'dark min-h-screen bg-slate-950 text-white' : 'min-h-screen bg-sky-50 text-zinc-950'}>
-            <header className="border-b border-zinc-200 bg-white/95">
-                <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
-                    <Link href="/" className="text-lg font-semibold tracking-tight">Elixe</Link>
-                    <div className="flex items-center gap-1 text-sm">
-                        <Link className="nav-link" href="/">Inicio</Link>
-                        <Link className="nav-link" href="/locales">Para locales</Link>
-                        <Link className="nav-link" href="/anunciantes">Para anunciantes</Link>
-                        <Link className="nav-link" href="/red-de-pantallas">Red de pantallas</Link>
-                        <Link className="nav-link" href="/asesoramiento">Solicitar asesoramiento</Link>
-                        <button type="button" className="icon-btn" onClick={() => setDark((value) => !value)} aria-label="Cambiar modo">
+        <div className={dark ? 'dark site-shell' : 'site-shell'}>
+            <header className="site-header">
+                <nav className="site-nav" aria-label="Navegación principal">
+                    <Link href="/" aria-label="Elixe, ir al inicio"><Brand /></Link>
+                    <div className="hidden items-center gap-1 lg:flex">
+                        {navigation.map((item) => <Link key={item.href} className="nav-link" href={item.href}>{item.label}</Link>)}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Link className="hidden rounded-full bg-cyan-400 px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-300 sm:inline-flex" href="/asesoramiento">Solicitar asesoramiento</Link>
+                        <Link href={languageHref} className="icon-btn" aria-label={isGalician ? 'Ver en español' : 'Ver en gallego'}><Globe2 className="h-4 w-4" /><span className="sr-only sm:not-sr-only sm:text-xs">{isGalician ? 'ES' : 'GL'}</span></Link>
+                        <button type="button" className="icon-btn" onClick={() => setDark((value) => !value)} aria-label={dark ? 'Activar modo claro' : 'Activar modo oscuro'}>
                             {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                        </button>
+                        <button type="button" className="icon-btn lg:hidden" onClick={() => setMenuOpen((value) => !value)} aria-expanded={menuOpen} aria-controls="mobile-navigation" aria-label="Abrir menú">
+                            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
                         </button>
                     </div>
                 </nav>
+                {menuOpen && (
+                    <div id="mobile-navigation" className="mobile-nav">
+                        {navigation.map((item) => <Link key={item.href} className="mobile-nav-link" href={item.href}>{item.label}<ChevronRight className="h-4 w-4" /></Link>)}
+                        <Link className="btn-primary mt-3" href="/asesoramiento">Solicitar asesoramiento</Link>
+                    </div>
+                )}
             </header>
             <main>{children}</main>
-            <footer className="border-t border-zinc-200 bg-white">
-                <div className="mx-auto flex max-w-6xl flex-col gap-3 px-5 py-8 text-sm text-zinc-600 sm:flex-row sm:items-center sm:justify-between">
-                    <span>Elixe Ads Platform</span>
-                    <div className="flex gap-4">
-                        <Link href="/privacidad">Privacidad</Link>
-                        <Link href="/cookies">Cookies</Link>
-                        <Link href="/aviso-legal">Aviso legal</Link>
-                    </div>
+            <footer className="site-footer">
+                <div className="mx-auto grid max-w-7xl gap-10 px-5 py-12 sm:px-8 md:grid-cols-[1.2fr_.8fr_.8fr]">
+                    <div><Brand /><p className="mt-5 max-w-sm text-sm">Pantallas digitales para conectar negocios, locales y personas en Galicia.</p></div>
+                    <div><h2 className="footer-title">Descubre Elixe</h2><div className="mt-4 grid gap-3 text-sm"><Link href="/locales">Para locales</Link><Link href="/anunciantes">Para anunciantes</Link><Link href="/red-de-pantallas">Red de pantallas</Link></div></div>
+                    <div><h2 className="footer-title">Información</h2><div className="mt-4 grid gap-3 text-sm"><Link href="/privacidad">Privacidad</Link><Link href="/cookies">Cookies</Link><Link href="/aviso-legal">Aviso legal</Link></div></div>
                 </div>
+                <div className="border-t border-white/10"><div className="mx-auto flex max-w-7xl flex-col gap-2 px-5 py-5 text-xs text-slate-400 sm:flex-row sm:justify-between sm:px-8"><span>© {new Date().getFullYear()} Elixe</span><span>Publicidad local, impacto real.</span></div></div>
             </footer>
         </div>
     );
@@ -205,6 +237,14 @@ function Badge({ children, tone = 'slate' }: PropsWithChildren<{ tone?: 'slate' 
     return <span className={`inline-flex rounded px-2 py-1 text-xs font-semibold ${tones[tone]}`}>{children}</span>;
 }
 
+function paginationLabel(label: string) {
+    return label
+        .replace(/&laquo;/g, '‹')
+        .replace(/&raquo;/g, '›')
+        .replace(/&amp;/g, '&')
+        .replace(/<[^>]*>/g, '');
+}
+
 function Pagination<T>({ page }: { page: Paginator<T> }) {
     if (!page.links?.length) {
         return null;
@@ -213,9 +253,9 @@ function Pagination<T>({ page }: { page: Paginator<T> }) {
     return (
         <div className="mt-6 flex flex-wrap gap-2">
             {page.links.map((link, index) => link.url ? (
-                <Link key={index} href={link.url} className={`rounded border px-3 py-2 text-sm ${link.active ? 'border-sky-700 bg-sky-700 text-white' : 'border-slate-200 bg-white text-slate-700'}`} dangerouslySetInnerHTML={{ __html: link.label }} />
+                <Link key={index} href={link.url} className={`rounded border px-3 py-2 text-sm ${link.active ? 'border-sky-700 bg-sky-700 text-white' : 'border-slate-200 bg-white text-slate-700'}`}>{paginationLabel(link.label)}</Link>
             ) : (
-                <span key={index} className="rounded border border-slate-200 px-3 py-2 text-sm text-slate-400" dangerouslySetInnerHTML={{ __html: link.label }} />
+                <span key={index} className="rounded border border-slate-200 px-3 py-2 text-sm text-slate-400">{paginationLabel(link.label)}</span>
             ))}
         </div>
     );
@@ -229,12 +269,12 @@ function ScreenGrid({ screens, selectable = false, selected = [], onToggle }: { 
     return (
         <div className="grid gap-4 md:grid-cols-2">
             {screens.map((screen) => (
-                <button type="button" key={screen.id} onClick={() => selectable && onToggle?.(screen.id)} className={`screen-card text-left ${selected.includes(screen.id) ? 'ring-2 ring-emerald-600' : ''}`}>
+                <button type="button" key={screen.id} onClick={() => selectable && onToggle?.(screen.id)} className={`screen-card text-left ${selectable ? '' : 'cursor-default'} ${selected.includes(screen.id) ? 'screen-card-selected' : ''}`} aria-pressed={selectable ? selected.includes(screen.id) : undefined}>
                     <div className="flex items-start justify-between gap-3">
                         <div>
                             <h3>{screen.name}</h3>
                         </div>
-                        {selectable && selected.includes(screen.id) ? <Check className="h-5 w-5 text-emerald-700" /> : <Monitor className="h-5 w-5 text-zinc-500" />}
+                        {selectable && selected.includes(screen.id) ? <span className="rounded-full bg-cyan-400 p-1 text-slate-950"><Check className="h-4 w-4" /></span> : <span className="rounded-full bg-sky-100 p-2 text-sky-800"><Monitor className="h-4 w-4" /></span>}
                     </div>
                     <p className="mt-3 flex items-center gap-2 text-sm text-zinc-600"><MapPin className="h-4 w-4" />{[screen.municipality, screen.province].filter(Boolean).join(', ') || 'Ubicacion aproximada'}</p>
                     <div className="mt-4 flex flex-wrap gap-2 text-xs">
@@ -261,7 +301,7 @@ function ScreensMap({ screens }: { screens: Screen[] }) {
     }, []);
 
     if (!mounted) {
-        return <div className="h-[420px] w-full rounded-2xl border border-zinc-200 bg-white" />;
+        return <div className="map-frame animate-pulse bg-sky-100" aria-label="Cargando mapa" />;
     }
 
     return (
@@ -269,7 +309,7 @@ function ScreensMap({ screens }: { screens: Screen[] }) {
             center={center}
             zoom={validScreens.length ? 13 : 8}
             scrollWheelZoom={false}
-            className="h-[420px] w-full rounded-2xl border border-zinc-200"
+            className="map-frame"
         >
             <TileLayer
                 attribution="&copy; OpenStreetMap contributors"
@@ -298,70 +338,119 @@ function Home({ summary, screens = [], contentBlocks = {}, faqs = [] }: { summar
 
     return (
         <Layout>
-            <section className="hero">
-                <div className="mx-auto grid max-w-6xl gap-10 px-5 py-16 md:grid-cols-[1.1fr_.9fr] md:items-center">
-                    <div>
-                        <h1>{hero.title || 'Publicidad local en pantallas reales.'}</h1>
-                        <p>{hero.subtitle || 'Elixe instala y gestiona pantallas digitales en locales para mostrar contenido, promociones y publicidad de forma sencilla.'}</p>
-                        <div className="mt-8 flex flex-wrap gap-3">
-                            <Link className="btn-primary" href="/asesoramiento"><Store className="h-4 w-4" /> Solicitar asesoramiento</Link>
-                            <Link className="btn-secondary" href="/red-de-pantallas"><Building2 className="h-4 w-4" /> Ver red de pantallas</Link>
+            <section className="home-hero">
+                <div className="hero-backdrop" aria-hidden="true" />
+                <div className="relative mx-auto flex min-h-[690px] max-w-7xl items-center px-5 py-24 sm:px-8 lg:py-32">
+                    <div className="max-w-3xl">
+                        <span className="eyebrow eyebrow-light"><Radio className="h-4 w-4" /> Red digital en Galicia</span>
+                        <h1 className="hero-title">{hero.title || 'Publicidad local en pantallas reales.'}</h1>
+                        <p className="hero-copy">{hero.subtitle || 'Elixe instala y gestiona pantallas digitales en locales para mostrar contenido, promociones y publicidad de forma sencilla.'}</p>
+                        <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                            <Link className="btn-primary btn-large" href="/asesoramiento">Solicitar asesoramiento <ArrowRight className="h-4 w-4" /></Link>
+                            <Link className="btn-ghost btn-large" href="/red-de-pantallas"><MapPin className="h-4 w-4" /> Ver red de pantallas</Link>
                         </div>
                     </div>
-                    <div className="panel">
-                        <div className="grid grid-cols-3 gap-3">
-                            <Stat label="pantallas" value={summary.totalScreens} />
-                            <Stat label="activas" value={summary.activeScreens} />
-                            <Stat label="disponibles" value={summary.availableScreens} />
-                        </div>
-                        <div className="mt-5"><ScreensMap screens={screens} /></div>
+                </div>
+                <a href="#que-hacemos" className="hero-scroll" aria-label="Ir a la siguiente sección"><ArrowDown className="h-5 w-5" /></a>
+            </section>
+            <section id="que-hacemos" className="section section-roomy">
+                <div className="grid gap-12 lg:grid-cols-[.8fr_1.2fr] lg:items-end">
+                    <div><span className="eyebrow">Qué hace Elixe</span><h2 className="display-title mt-4">Una red que conecta el comercio local.</h2></div>
+                    <p className="text-lg">Convertimos pantallas en puntos de comunicación útiles. Tu local informa mejor; tu negocio se anuncia donde están sus clientes. Nosotros coordinamos la tecnología, el contenido y la red.</p>
+                </div>
+                <div className="mt-12 grid gap-5 md:grid-cols-3">
+                    <article className="feature-card"><span className="feature-number">01</span><Monitor className="feature-icon" /><h3>Pantallas reales</h3><p>Instaladas en establecimientos de la red y gestionadas por Elixe.</p></article>
+                    <article className="feature-card"><span className="feature-number">02</span><MapPin className="feature-icon" /><h3>Impacto de proximidad</h3><p>Campañas por zona y tipo de local para llegar a una audiencia relevante.</p></article>
+                    <article className="feature-card"><span className="feature-number">03</span><Sparkles className="feature-icon" /><h3>Gestión sencilla</h3><p>Te acompañamos desde la idea hasta la publicación y el mantenimiento.</p></article>
+                </div>
+            </section>
+            <section className="network-stats bg-slate-950 py-6 dark:bg-black">
+                <div className="mx-auto grid max-w-7xl grid-cols-3 gap-2 px-5 sm:px-8">
+                    <Stat label="pantallas en red" value={summary.totalScreens} />
+                    <Stat label="pantallas activas" value={summary.activeScreens} />
+                    <Stat label="disponibles" value={summary.availableScreens} />
+                </div>
+            </section>
+            <section className="section section-roomy">
+                <div className="section-heading"><span className="eyebrow">Dos formas de conectar</span><h2 className="display-title">Elixe trabaja para ti.</h2></div>
+                <div className="mt-10 grid gap-6 lg:grid-cols-2">
+                    <article className="audience-card audience-venues">
+                        <div className="audience-content"><span className="card-tag"><Store className="h-4 w-4" /> Para locales</span><h3>{venues.title || 'Haz que tu pantalla trabaje para tu local'}</h3><p>{venues.content || 'Muestra promociones, menús, avisos o eventos mientras formas parte de una red publicitaria local.'}</p><Link href="/locales">Descubrir ventajas <ArrowRight className="h-4 w-4" /></Link></div>
+                    </article>
+                    <article className="audience-card audience-advertisers">
+                        <div className="audience-content"><span className="card-tag"><Building2 className="h-4 w-4" /> Para anunciantes</span><h3>{advertisers.title || 'Tu negocio, delante de clientes cercanos'}</h3><p>{advertisers.content || 'Amplía tu visibilidad en pantallas reales, seleccionando zonas y tipos de establecimientos.'}</p><Link href="/anunciantes">Planificar una campaña <ArrowRight className="h-4 w-4" /></Link></div>
+                    </article>
+                </div>
+            </section>
+            <section className="soft-section">
+                <div className="section section-roomy">
+                    <div className="grid gap-12 lg:grid-cols-[.8fr_1.2fr]">
+                        <div><span className="eyebrow">{how.title || 'Cómo funciona'}</span><h2 className="display-title mt-4">De la primera conversación a la pantalla.</h2><p className="mt-5">{how.content || 'Recogemos tu solicitud, revisamos el encaje y preparamos una propuesta personalizada.'}</p><Link className="btn-secondary mt-7" href="/asesoramiento">Cuéntanos tu idea <ArrowRight className="h-4 w-4" /></Link></div>
+                        <ol className="process-list">
+                            <li><span>1</span><div><h3>Cuéntanos qué necesitas</h3><p>Local, campaña u otra consulta: un único formulario adaptado a ti.</p></div></li>
+                            <li><span>2</span><div><h3>Diseñamos la propuesta</h3><p>Revisamos zonas, pantallas, objetivos y disponibilidad contigo.</p></div></li>
+                            <li><span>3</span><div><h3>Lo ponemos en marcha</h3><p>Elixe gestiona la configuración, la publicación y el seguimiento.</p></div></li>
+                        </ol>
                     </div>
                 </div>
             </section>
-            <section className="section grid-gap">
-                <article><h2>{venues.title || 'Para locales'}</h2><p>{venues.content || 'Tu pantalla tambien puede mostrar contenido propio del local: promociones, menus, avisos o eventos.'}</p></article>
-                <article><h2>{advertisers.title || 'Para anunciantes'}</h2><p>{advertisers.content || 'Llega a clientes locales y amplia la visibilidad de tu negocio en pantallas reales.'}</p></article>
-                <article><h2>{how.title || 'Como funciona'}</h2><p>{how.content || 'Recogemos tu solicitud, revisamos el encaje y preparamos una propuesta personalizada.'}</p></article>
+            <section className="section section-roomy">
+                <div className="section-head"><div><span className="eyebrow">Red Elixe</span><h2 className="display-title mt-4">Pantallas en Galicia</h2><p className="mt-4">Explora ubicaciones reales de nuestra red y encuentra el espacio adecuado.</p></div><Link className="btn-secondary" href="/red-de-pantallas">Ver toda la red <ArrowRight className="h-4 w-4" /></Link></div>
+                <div className="map-panel mt-8"><ScreensMap screens={screens} /></div>
             </section>
             {faqs.length > 0 && (
-                <section className="section">
-                    <div className="section-head"><div><h2>Preguntas frecuentes</h2></div></div>
-                    <div className="grid gap-4 md:grid-cols-2">
+                <section className="soft-section"><div className="section section-roomy">
+                    <div className="section-heading"><span className="eyebrow">Resolvemos tus dudas</span><h2 className="display-title">Preguntas frecuentes</h2></div>
+                    <div className="mt-10 grid gap-4 md:grid-cols-2">
                         {faqs.map((faq) => (
-                            <article key={faq.id} className="panel">
+                            <article key={faq.id} className="faq-card">
                                 <h3>{faq.question}</h3>
                                 <p className="mt-3">{faq.answer}</p>
                             </article>
                         ))}
                     </div>
-                </section>
+                </div></section>
             )}
+            <section className="cta-section"><div className="section py-20 text-center"><span className="eyebrow eyebrow-light">Hablemos</span><h2 className="mx-auto mt-4 max-w-3xl text-4xl font-bold text-white md:text-5xl">Tu próxima conexión local empieza aquí.</h2><p className="mx-auto mt-5 max-w-2xl text-sky-100">Cuéntanos qué necesitas. Te ayudaremos a encontrar la solución adecuada, sin compromiso.</p><Link className="btn-primary btn-large mt-8" href="/asesoramiento">Solicitar asesoramiento <ArrowRight className="h-4 w-4" /></Link></div></section>
         </Layout>
     );
 }
 
 function ScreensPage({ screens }: { screens: Screen[] }) {
     const [sector, setSector] = useState('');
+    const [locationType, setLocationType] = useState('');
+    const [selected, setSelected] = useState<number[]>([]);
     const sectors = useMemo(() => [...new Set(screens.map((screen) => screen.locationSector).filter(Boolean))], [screens]);
-    const filtered = sector ? screens.filter((screen) => screen.locationSector === sector) : screens;
-    const selectScreen = (id: number) => {
-        sessionStorage.setItem('elixe.selectedScreens', JSON.stringify([id]));
-        window.location.href = '/asesoramiento?tipo=advertiser';
+    const locationTypes = useMemo(() => [...new Set(screens.map((screen) => screen.locationType).filter(Boolean))], [screens]);
+    const filtered = screens.filter((screen) => (!sector || screen.locationSector === sector) && (!locationType || screen.locationType === locationType));
+    const toggleScreen = (id: number) => {
+        const next = selected.includes(id) ? selected.filter((value) => value !== id) : [...selected, id];
+        setSelected(next);
+        sessionStorage.setItem('elixe.selectedScreens', JSON.stringify(next));
     };
 
     return (
         <Layout>
-            <section className="section">
-                <div className="section-head">
-                    <div><h1>Pantallas disponibles</h1><p>Consulta las pantallas disponibles para campañas locales en Galicia.</p></div>
-                    <select className="input max-w-xs" value={sector} onChange={(event) => setSector(event.target.value)}>
+            <section className="page-hero"><div className="section py-16 md:py-24"><span className="eyebrow eyebrow-light"><MapPin className="h-4 w-4" /> Red Elixe</span><h1 className="mt-5 max-w-4xl text-white">Publicidad donde sucede la vida local.</h1><p className="mt-5 max-w-2xl text-lg text-sky-100">Explora las pantallas disponibles en Galicia, filtra por sector y elige dónde quieres que se vea tu negocio.</p></div></section>
+            <section className="section section-roomy">
+                <div className="filter-bar">
+                    <div><strong>{filtered.length}</strong><span> pantallas disponibles</span></div>
+                    <label className="sr-only" htmlFor="sector-filter">Filtrar por sector</label>
+                    <select id="sector-filter" className="input max-w-xs" value={sector} onChange={(event) => setSector(event.target.value)}>
                         <option value="">Todos los sectores</option>
                         {sectors.map((item) => <option key={item} value={item}>{item}</option>)}
                     </select>
+                    <label className="sr-only" htmlFor="type-filter">Filtrar por tipo de local</label>
+                    <select id="type-filter" className="input max-w-xs" value={locationType} onChange={(event) => setLocationType(event.target.value)}>
+                        <option value="">Todos los tipos</option>
+                        {locationTypes.map((item) => <option key={item} value={item}>{item}</option>)}
+                    </select>
                 </div>
-                <ScreensMap screens={filtered} />
-                <div className="mt-6"><ScreenGrid screens={filtered} selectable selected={[]} onToggle={selectScreen} /></div>
+                <div className="map-panel mt-8"><ScreensMap screens={filtered} /></div>
+                <div className="mt-12 flex items-end justify-between gap-6"><div><span className="eyebrow">Elige ubicaciones</span><h2 className="mt-3">Selecciona tus pantallas</h2><p className="mt-2">Puedes marcar una o varias y continuar al formulario.</p></div>{selected.length > 0 && <span className="selection-count">{selected.length} seleccionada{selected.length === 1 ? '' : 's'}</span>}</div>
+                <div className="mt-6"><ScreenGrid screens={filtered} selectable selected={selected} onToggle={toggleScreen} /></div>
             </section>
+            <div className={`selection-dock ${selected.length ? 'selection-dock-visible' : ''}`} aria-live="polite"><div><strong>{selected.length} pantalla{selected.length === 1 ? '' : 's'}</strong><span className="hidden text-sm text-slate-500 sm:inline"> seleccionada{selected.length === 1 ? '' : 's'} para tu campaña</span></div><Link href="/asesoramiento?tipo=advertiser" className="btn-primary">Continuar <ArrowRight className="h-4 w-4" /></Link></div>
         </Layout>
     );
 }
@@ -422,6 +511,54 @@ function AdvertisersPage({ screens }: { screens: Screen[] }) {
             </section>
         </Layout>
     );
+}
+
+declare global {
+    interface Window {
+        turnstile?: {
+            render: (element: HTMLElement, options: Record<string, unknown>) => string;
+            remove: (widgetId: string) => void;
+        };
+    }
+}
+
+function TurnstileWidget({ siteKey, onVerify }: { siteKey: string; onVerify: (token: string) => void }) {
+    const containerId = 'elixe-turnstile';
+
+    useEffect(() => {
+        let widgetId: string | undefined;
+        const renderWidget = () => {
+            const container = document.getElementById(containerId);
+            if (container && window.turnstile && !container.hasChildNodes()) {
+                widgetId = window.turnstile.render(container, {
+                    sitekey: siteKey,
+                    callback: (token: string) => onVerify(token),
+                    'expired-callback': () => onVerify(''),
+                    theme: 'auto',
+                });
+            }
+        };
+        const existing = document.querySelector<HTMLScriptElement>('script[data-elixe-turnstile]');
+        if (existing) {
+            existing.addEventListener('load', renderWidget);
+            renderWidget();
+        } else {
+            const script = document.createElement('script');
+            script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+            script.async = true;
+            script.defer = true;
+            script.dataset.elixeTurnstile = 'true';
+            script.addEventListener('load', renderWidget);
+            document.head.appendChild(script);
+        }
+
+        return () => {
+            existing?.removeEventListener('load', renderWidget);
+            if (widgetId && window.turnstile) window.turnstile.remove(widgetId);
+        };
+    }, [siteKey]);
+
+    return <div id={containerId} className="min-h-[65px]" aria-label="Verificación de seguridad" />;
 }
 
 function AdvicePage({ screens, turnstileSiteKey }: { screens: Screen[]; turnstileSiteKey?: string | null }) {
@@ -528,11 +665,13 @@ function AdvicePage({ screens, turnstileSiteKey }: { screens: Screen[]; turnstil
 
     return (
         <Layout>
-            <section className="section">
-                <div className="section-head">
-                    <div><h1>Solicitar asesoramiento</h1><p>Cuéntanos qué necesitas y el equipo de Elixe revisará tu solicitud para preparar el siguiente paso.</p></div>
+            <section className="page-hero page-hero-compact"><div className="section py-14 md:py-20"><span className="eyebrow eyebrow-light"><Users className="h-4 w-4" /> Hablemos</span><h1 className="mt-5 text-white">Solicitar asesoramiento</h1><p className="mt-4 max-w-2xl text-lg text-sky-100">Cuéntanos qué necesitas y el equipo de Elixe preparará contigo el siguiente paso.</p></div></section>
+            <section className="section section-roomy">
+                <div className="section-heading text-center">
+                    <span className="eyebrow">Paso 1 · Elige tu objetivo</span>
+                    <h2 className="display-title">¿Cómo podemos ayudarte?</h2>
                 </div>
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="mx-auto mt-8 grid max-w-5xl gap-4 md:grid-cols-3">
                     <button type="button" className={`choice ${form.data.type === 'venue' ? 'choice-active' : ''}`} onClick={() => { form.setData('type', 'venue'); form.clearErrors(); }}>
                         <Store className="h-5 w-5" />Tengo un local
                     </button>
@@ -543,39 +682,40 @@ function AdvicePage({ screens, turnstileSiteKey }: { screens: Screen[]; turnstil
                         <Send className="h-5 w-5" />Tengo otra consulta
                     </button>
                 </div>
-                <form className="form-panel mt-8" noValidate onSubmit={(event) => { event.preventDefault(); if (validateClient()) form.post('/asesoramiento'); }}>
-                    {form.data.type === 'venue' && <div><input className={inputClass('business_name')} placeholder="Nombre del local *" value={form.data.business_name} onChange={(e) => form.setData('business_name', e.target.value)} />{error('business_name')}</div>}
-                    {form.data.type === 'advertiser' && <div><input className={inputClass('company_name')} placeholder="Nombre de empresa *" value={form.data.company_name} onChange={(e) => form.setData('company_name', e.target.value)} />{error('company_name')}</div>}
-                    <div><input className={inputClass('contact_name')} placeholder="Nombre de contacto *" value={form.data.contact_name} onChange={(e) => form.setData('contact_name', e.target.value)} />{error('contact_name')}</div>
-                    <div><input className={inputClass('phone')} placeholder="Telefono *" value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} />{error('phone')}</div>
-                    <div><input className={inputClass('email')} placeholder="Email *" value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} />{error('email')}</div>
-                    <div><input className={inputClass('province')} placeholder={form.data.type === 'venue' ? 'Provincia *' : 'Provincia'} value={form.data.province} onChange={(e) => form.setData('province', e.target.value)} />{error('province')}</div>
-                    <div><input className={inputClass('municipality')} placeholder={form.data.type === 'venue' ? 'Municipio *' : 'Municipio'} value={form.data.municipality} onChange={(e) => form.setData('municipality', e.target.value)} />{error('municipality')}</div>
-                    {form.data.type === 'venue' && <div><select className={inputClass('location_type')} value={form.data.location_type} onChange={(e) => form.setData('location_type', e.target.value)}>
+                <div className="mx-auto mt-12 max-w-5xl"><div className="mb-6"><span className="eyebrow">Paso 2 · Tus datos</span><h2 className="mt-3">Cuéntanos un poco más</h2><p className="mt-2">Los campos con * son obligatorios.</p></div>
+                <form className="form-panel advice-form" noValidate onSubmit={(event) => { event.preventDefault(); if (validateClient()) form.post('/asesoramiento'); }}>
+                    {form.data.type === 'venue' && <div><label htmlFor="business_name">Nombre del local *</label><input id="business_name" className={inputClass('business_name')} placeholder="Ej. Café Atlántico" value={form.data.business_name} onChange={(e) => form.setData('business_name', e.target.value)} />{error('business_name')}</div>}
+                    {form.data.type === 'advertiser' && <div><label htmlFor="company_name">Nombre de empresa *</label><input id="company_name" className={inputClass('company_name')} placeholder="Ej. Mi empresa" value={form.data.company_name} onChange={(e) => form.setData('company_name', e.target.value)} />{error('company_name')}</div>}
+                    <div><label htmlFor="contact_name">Nombre de contacto *</label><input id="contact_name" className={inputClass('contact_name')} placeholder="Nombre y apellidos" value={form.data.contact_name} onChange={(e) => form.setData('contact_name', e.target.value)} />{error('contact_name')}</div>
+                    <div><label htmlFor="phone">Teléfono *</label><input id="phone" className={inputClass('phone')} inputMode="tel" autoComplete="tel" placeholder="600 000 000" value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value.replace(/\s/g, ''))} />{error('phone')}</div>
+                    <div><label htmlFor="email">Email *</label><input id="email" className={inputClass('email')} type="email" autoComplete="email" placeholder="tu@email.com" value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} />{error('email')}</div>
+                    <div><label htmlFor="province">Provincia {form.data.type === 'venue' ? '*' : ''}</label><input id="province" className={inputClass('province')} autoComplete="address-level1" placeholder="Ej. A Coruña" value={form.data.province} onChange={(e) => form.setData('province', e.target.value)} />{error('province')}</div>
+                    <div><label htmlFor="municipality">Municipio {form.data.type === 'venue' ? '*' : ''}</label><input id="municipality" className={inputClass('municipality')} autoComplete="address-level2" placeholder="Ej. Santiago de Compostela" value={form.data.municipality} onChange={(e) => form.setData('municipality', e.target.value)} />{error('municipality')}</div>
+                    {form.data.type === 'venue' && <div><label htmlFor="location_type">Tipo de local *</label><select id="location_type" className={inputClass('location_type')} value={form.data.location_type} onChange={(e) => form.setData('location_type', e.target.value)}>
                         <option value="">Tipo de local</option>
                         {['bar', 'restaurante', 'cafeteria', 'lavanderia', 'gimnasio', 'peluqueria', 'clinica', 'tienda', 'hotel', 'supermercado', 'oficina', 'centro_comercial', 'farmacia', 'autoescuela', 'estanco', 'panaderia', 'coworking', 'otro'].map((type) => <option key={type} value={type}>{type}</option>)}
                     </select>{error('location_type')}</div>}
                     {form.data.type === 'venue' && <label className="check"><input type="checkbox" checked={form.data.has_screen} onChange={(e) => form.setData('has_screen', e.target.checked)} /> Tiene pantalla actualmente</label>}
                     {form.data.type === 'venue' && <label className="check"><input type="checkbox" checked={form.data.wants_elixe_screen} onChange={(e) => form.setData('wants_elixe_screen', e.target.checked)} /> Quiere que Elixe proporcione pantalla</label>}
                     {form.data.type === 'venue' && <label className="check"><input type="checkbox" checked={form.data.wants_ad_control} onChange={(e) => form.setData('wants_ad_control', e.target.checked)} /> Quiere controlar publicidad</label>}
-                    {form.data.type === 'advertiser' && <div><select className={inputClass('activity_sector')} value={form.data.activity_sector} onChange={(e) => form.setData('activity_sector', e.target.value)}>
+                    {form.data.type === 'advertiser' && <div><label htmlFor="activity_sector">Sector de actividad *</label><select id="activity_sector" className={inputClass('activity_sector')} value={form.data.activity_sector} onChange={(e) => form.setData('activity_sector', e.target.value)}>
                         <option value="">Sector de actividad</option>
                         {['Hosteleria', 'Comercio local', 'Salud y bienestar', 'Servicios profesionales', 'Inmobiliaria', 'Automocion', 'Educacion', 'Eventos', 'Turismo', 'Ocio', 'Otro'].map((sector) => <option key={sector} value={sector}>{sector}</option>)}
                     </select>{error('activity_sector')}</div>}
-                    {form.data.type === 'advertiser' && <div><input className={inputClass('interest_zone')} placeholder="Zona de interes *" value={form.data.interest_zone} onChange={(e) => form.setData('interest_zone', e.target.value)} />{error('interest_zone')}</div>}
-                    {form.data.type === 'advertiser' && <div><select className={inputClass('budget_range')} value={form.data.budget_range} onChange={(e) => form.setData('budget_range', e.target.value)}>
+                    {form.data.type === 'advertiser' && <div><label htmlFor="interest_zone">Zona de interés *</label><input id="interest_zone" className={inputClass('interest_zone')} placeholder="Municipios, barrios o zonas" value={form.data.interest_zone} onChange={(e) => form.setData('interest_zone', e.target.value)} />{error('interest_zone')}</div>}
+                    {form.data.type === 'advertiser' && <div><label htmlFor="budget_range">Presupuesto orientativo *</label><select id="budget_range" className={inputClass('budget_range')} value={form.data.budget_range} onChange={(e) => form.setData('budget_range', e.target.value)}>
                         <option value="">Presupuesto orientativo</option>
                         <option value="menos_100">Menos de 100 EUR</option>
                         <option value="100_300">100 - 300 EUR</option>
                         <option value="mas_300">Mas de 300 EUR</option>
                     </select>{error('budget_range')}</div>}
-                    <div><select className={inputClass('preferred_contact_method')} value={form.data.preferred_contact_method} onChange={(e) => form.setData('preferred_contact_method', e.target.value)}>
+                    <div><label htmlFor="preferred_contact_method">¿Cómo prefieres que contactemos? *</label><select id="preferred_contact_method" className={inputClass('preferred_contact_method')} value={form.data.preferred_contact_method} onChange={(e) => form.setData('preferred_contact_method', e.target.value)}>
                         <option value="llamada">Llamada</option>
                         <option value="email">Email</option>
                         <option value="whatsapp">WhatsApp</option>
                         <option value="indiferente">Me da igual</option>
                     </select>{error('preferred_contact_method')}</div>
-                    <div><select className={inputClass('preferred_call_time')} value={form.data.preferred_call_time} onChange={(e) => form.setData('preferred_call_time', e.target.value)}>
+                    <div><label htmlFor="preferred_call_time">Horario preferido *</label><select id="preferred_call_time" className={inputClass('preferred_call_time')} value={form.data.preferred_call_time} onChange={(e) => form.setData('preferred_call_time', e.target.value)}>
                         <option value="manana">Mañana</option>
                         <option value="mediodia">Mediodia</option>
                         <option value="tarde">Tarde</option>
@@ -583,22 +723,23 @@ function AdvicePage({ screens, turnstileSiteKey }: { screens: Screen[]; turnstil
                     </select>{error('preferred_call_time')}</div>
                     {form.data.type === 'advertiser' && selectedScreens.length > 0 && <p className="md:col-span-2 text-sm text-zinc-600">Pantallas seleccionadas: {selectedScreens.map((screen) => screen.name).join(', ')}</p>}
                     {form.data.type === 'advertiser' && <div className="md:col-span-2"><ScreenGrid screens={screens} selectable selected={form.data.selected_screen_ids} onToggle={toggleScreen} /></div>}
-                    <div className="md:col-span-2"><textarea className={inputClass('message')} placeholder={form.data.type === 'other' ? 'Mensaje libre *' : 'Mensaje libre'} value={form.data.message} onChange={(e) => form.setData('message', e.target.value)} />{error('message')}</div>
-                    {turnstileSiteKey && <div className="md:col-span-2"><input className={inputClass('cf_turnstile_response')} placeholder="Token Turnstile" value={form.data.cf_turnstile_response} onChange={(e) => form.setData('cf_turnstile_response', e.target.value)} />{error('cf_turnstile_response')}</div>}
-                    <div className="md:col-span-2"><label className={`check ${errors.privacy_accepted ? 'input-error' : ''}`}><input type="checkbox" checked={form.data.privacy_accepted} onChange={(e) => form.setData('privacy_accepted', e.target.checked)} /> Acepto la politica de privacidad y el tratamiento de mis datos para que Elixe pueda contactar conmigo.</label>{error('privacy_accepted')}</div>
-                    <button className="btn-primary md:col-span-2" disabled={form.processing}><Send className="h-4 w-4" /> Enviar solicitud</button>
+                    <div className="md:col-span-2"><label htmlFor="message">Mensaje {form.data.type === 'other' ? '*' : ''}</label><textarea id="message" className={inputClass('message')} placeholder="Cuéntanos cualquier detalle que debamos conocer" value={form.data.message} onChange={(e) => form.setData('message', e.target.value)} />{error('message')}</div>
+                    {turnstileSiteKey && <div className="md:col-span-2"><TurnstileWidget siteKey={turnstileSiteKey} onVerify={(token) => form.setData('cf_turnstile_response', token)} />{error('cf_turnstile_response')}</div>}
+                    <div className="md:col-span-2"><label className={`check ${errors.privacy_accepted ? 'input-error' : ''}`}><input type="checkbox" checked={form.data.privacy_accepted} onChange={(e) => form.setData('privacy_accepted', e.target.checked)} /> <span>Acepto la <Link className="font-semibold text-sky-700 underline" href="/privacidad">política de privacidad</Link> y el tratamiento de mis datos para que Elixe pueda contactar conmigo.</span></label>{error('privacy_accepted')}</div>
+                    <button className="btn-primary btn-large md:col-span-2" disabled={form.processing}><Send className="h-4 w-4" /> {form.processing ? 'Enviando…' : 'Enviar solicitud'}</button>
                 </form>
+                </div>
             </section>
         </Layout>
     );
 }
 
 function Thanks() {
-    return <Layout><section className="section narrow"><ShieldCheck className="h-10 w-10 text-emerald-700" /><h1>Solicitud recibida</h1><p>El equipo de Elixe revisara la informacion y contactara contigo.</p><Link className="btn-secondary mt-6" href="/">Volver al inicio</Link></section></Layout>;
+    return <Layout><section className="success-page"><div className="success-card"><span className="success-icon"><ShieldCheck className="h-10 w-10" /></span><span className="eyebrow mt-6">Todo listo</span><h1 className="mt-4">Solicitud recibida</h1><p className="mx-auto mt-4 max-w-md">El equipo de Elixe revisará la información y contactará contigo muy pronto.</p><Link className="btn-primary mt-8" href="/">Volver al inicio <ArrowRight className="h-4 w-4" /></Link></div></section></Layout>;
 }
 
 function LegalPage({ title, page }: { title?: string; page?: Legal }) {
-    return <Layout><section className="section narrow"><h1>{page?.title || title}</h1><p className="whitespace-pre-wrap">{page?.content || 'Documento pendiente de configurar desde admin.'}</p></section></Layout>;
+    return <Layout><section className="page-hero page-hero-compact"><div className="section py-14 md:py-20"><span className="eyebrow eyebrow-light"><ShieldCheck className="h-4 w-4" /> Información legal</span><h1 className="mt-5 text-white">{page?.title || title}</h1></div></section><section className="section section-roomy"><article className="legal-card"><p className="whitespace-pre-wrap">{page?.content || 'Documento pendiente de configurar desde admin.'}</p></article></section></Layout>;
 }
 
 function AdminLogin() {
