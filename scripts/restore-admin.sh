@@ -2,7 +2,11 @@
 set -eu
 
 EMAIL="${1:-admin@elixe.es}"
-PASSWORD="${2:-admin123456}"
+PASSWORD="${2:-}"
 
-docker compose exec app php artisan elixe:create-admin "$EMAIL" --password="$PASSWORD" --name="Admin Elixe"
-docker compose exec app php artisan elixe:check-admin-login "$EMAIL" "$PASSWORD"
+if [ -n "$PASSWORD" ]; then
+    docker compose exec app php artisan elixe:create-admin "$EMAIL" --password="$PASSWORD" --name="Admin Elixe"
+    docker compose exec app php artisan elixe:check-admin-login "$EMAIL" "$PASSWORD"
+else
+    docker compose exec app php artisan elixe:create-admin "$EMAIL" --name="Admin Elixe"
+fi

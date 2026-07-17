@@ -5,14 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Lead extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'submission_token',
         'type',
         'status',
+        'locale',
         'business_name',
         'company_name',
         'contact_name',
@@ -56,5 +60,15 @@ class Lead extends Model
     public function screens(): BelongsToMany
     {
         return $this->belongsToMany(Screen::class)->withTimestamps();
+    }
+
+    public function activities(): HasMany
+    {
+        return $this->hasMany(LeadActivity::class)->latest();
+    }
+
+    public function latestActivity(): HasOne
+    {
+        return $this->hasOne(LeadActivity::class)->latestOfMany();
     }
 }

@@ -27,6 +27,14 @@ class AuthController extends Controller
             return back()->withErrors(['email' => 'Credenciales incorrectas.'])->onlyInput('email');
         }
 
+        if (! $request->user()?->is_admin) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return back()->withErrors(['email' => 'Credenciales incorrectas.'])->onlyInput('email');
+        }
+
         $request->session()->regenerate();
 
         return redirect()->intended(route('admin.dashboard'));

@@ -27,6 +27,7 @@ Los tests usan SQLite en memoria mediante `phpunit.xml`. Esto evita que `Refresh
 Si el usuario admin local desaparece tras una recreacion de volumen o una limpieza manual:
 
 ```bash
-docker compose exec app php artisan elixe:create-admin admin@elixe.es --password=admin123456 --name="Admin Elixe"
-docker compose exec app php artisan elixe:check-admin-login admin@elixe.es admin123456
+docker compose exec app php artisan elixe:create-admin admin@elixe.es --name="Admin Elixe"
 ```
+
+El comando muestra una contraseña temporal aleatoria. Guárdala en un gestor de secretos y cámbiala si el entorno deja de ser estrictamente local.

@@ -23,6 +23,7 @@ class CreateAdminCommand extends Command
             [
                 'name' => $this->option('name'),
                 'password' => Hash::make($password),
+                'is_admin' => true,
             ],
         );
 

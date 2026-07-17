@@ -6,12 +6,14 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Screen extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'public_id',
         'xibo_display_id',
         'public_code',
         'display_name',
@@ -38,6 +40,13 @@ class Screen extends Model
         'raw_xibo_payload',
         'synced_at',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Screen $screen): void {
+            $screen->public_id ??= (string) Str::ulid();
+        });
+    }
 
     protected $casts = [
         'licensed' => 'boolean',
@@ -83,7 +92,7 @@ class Screen extends Model
     public function publicPayload(): array
     {
         return [
-            'id' => $this->id,
+            'id' => $this->public_id,
             'name' => $this->public_name ?: $this->description ?: 'Pantalla Elixe',
             'municipality' => $this->municipality,
             'province' => $this->province,

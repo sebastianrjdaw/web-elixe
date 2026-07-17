@@ -1,8 +1,5 @@
-@component('mail::message')
-# Gracias por contactar con Elixe
-
-Hemos recibido tu solicitud y nuestro equipo la revisara para ponerse en contacto contigo.
-
-Gracias,<br>
-Equipo Elixe
+@component('emails.layouts.elixe', ['title' => 'Hemos recibido tu solicitud', 'locale' => $lead->locale])
+    <p>Hola {{ $lead->contact_name }},</p>
+    <p>Hemos recibido tu solicitud y nuestro equipo la revisará para ponerse en contacto contigo.</p>
+    <p>Gracias por confiar en Elixe.</p>
 @endcomponent

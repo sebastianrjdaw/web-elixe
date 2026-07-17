@@ -22,7 +22,7 @@ class ScreenController extends Controller
         }
 
         return Inertia::render('Admin/Screens', [
-            'screens' => $query->paginate(25)->through(fn (Screen $screen) => $this->payload($screen)),
+            'screens' => $query->paginate(25)->withQueryString()->through(fn (Screen $screen) => $this->payload($screen)),
             'filters' => $request->only(['status']),
         ]);
     }
@@ -53,7 +53,12 @@ class ScreenController extends Controller
 
         AuditLogger::record('screen.sync_manual', $run, [], ['status' => $run->status], $request);
 
-        return back();
+        return back()->with(
+            $run->status === 'success' ? 'success' : 'error',
+            $run->status === 'success'
+                ? "Sincronizacion completada: {$run->records_created} altas y {$run->records_updated} cambios."
+                : ($run->error_message ?: 'No se pudo completar la sincronizacion.'),
+        );
     }
 
     private function payload(Screen $screen): array

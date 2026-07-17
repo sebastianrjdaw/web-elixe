@@ -12,10 +12,19 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        $schedule->command('xibo:sync-displays')->dailyAt('08:00');
-        $schedule->command('xibo:sync-displays')->dailyAt('14:00');
-        $schedule->command('xibo:sync-displays')->dailyAt('20:00');
-        $schedule->command('leads:send-daily-summary')->dailyAt('08:00');
+        foreach (['08:00', '14:00', '20:00'] as $time) {
+            $schedule->command('xibo:sync-displays')
+                ->dailyAt($time)
+                ->timezone(config('app.timezone'))
+                ->withoutOverlapping(30)
+                ->onOneServer();
+        }
+
+        $schedule->command('leads:send-daily-summary')
+            ->dailyAt('08:00')
+            ->timezone(config('app.timezone'))
+            ->withoutOverlapping(30)
+            ->onOneServer();
     }
 
     /**

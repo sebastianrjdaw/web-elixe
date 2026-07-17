@@ -3,15 +3,15 @@
 namespace App\Services\Diagnostics;
 
 use App\Models\DiagnosticRun;
+use App\Models\LegalPage;
+use App\Models\ResponseTemplate;
 use App\Models\Screen;
 use App\Services\Xibo\XiboService;
 use Throwable;
 
 class SystemDiagnostics
 {
-    public function __construct(private readonly XiboService $xibo)
-    {
-    }
+    public function __construct(private readonly XiboService $xibo) {}
 
     public function run(?int $triggeredByUserId = null): DiagnosticRun
     {
@@ -20,6 +20,7 @@ class SystemDiagnostics
             'environment' => $this->environmentCheck(),
             'xibo' => $this->xiboCheck(),
             'public_map' => $this->publicMapCheck(),
+            'production_readiness' => $this->productionReadinessCheck(),
         ];
 
         $status = collect($checks)->contains(fn (array $check) => $check['status'] === 'failed')
@@ -99,6 +100,43 @@ class SystemDiagnostics
                 'visible_screens' => $visible->count(),
                 'blocked_screens' => $blocked,
             ],
+        ];
+    }
+
+    private function productionReadinessCheck(): array
+    {
+        $issues = [];
+        $legalPages = LegalPage::query()->where('active', true)->get();
+        $placeholderPattern = '/\b(desarrollo|desenvolvemento|pendiente|pendente|sustituir|substituír|inicial)\b/iu';
+
+        if ($legalPages->count() < 3 || $legalPages->contains(fn (LegalPage $page) => preg_match($placeholderPattern, $page->content_es.' '.$page->content_gl))) {
+            $issues[] = 'Los textos legales necesitan validacion y datos definitivos antes de produccion.';
+        }
+
+        foreach (['es', 'gl'] as $locale) {
+            if (! ResponseTemplate::query()->active()->where('locale', $locale)->exists()) {
+                $issues[] = "No hay plantillas de email activas para {$locale}.";
+            }
+        }
+
+        if (config('app.debug')) {
+            $issues[] = 'APP_DEBUG debe estar desactivado en produccion.';
+        }
+
+        if (! str_starts_with(config('app.url'), 'https://')) {
+            $issues[] = 'APP_URL debe usar HTTPS en produccion.';
+        }
+
+        if (! config('services.turnstile.enabled')) {
+            $issues[] = 'Turnstile esta desactivado.';
+        }
+
+        return [
+            'status' => $issues === [] ? 'success' : 'warning',
+            'message' => $issues === []
+                ? 'La configuracion funcional esta preparada para produccion.'
+                : 'Hay requisitos pendientes antes de publicar en produccion.',
+            'details' => ['issues' => $issues],
         ];
     }
 }

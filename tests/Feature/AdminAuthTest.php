@@ -41,4 +41,22 @@ class AdminAuthTest extends TestCase
 
         $this->assertGuest();
     }
+
+    public function test_non_admin_user_cannot_access_the_admin_area(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'user@example.test',
+            'password' => Hash::make('valid-password'),
+            'is_admin' => false,
+        ]);
+
+        $this->post(route('admin.login.store'), [
+            'email' => $user->email,
+            'password' => 'valid-password',
+        ])->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+
+        $this->actingAs($user)->get(route('admin.dashboard'))->assertForbidden();
+    }
 }

@@ -103,6 +103,6 @@ class PageController extends Controller
 
     private function locale(Request $request): string
     {
-        return $request->query('lang') === 'gl' ? 'gl' : 'es';
+        return app()->getLocale();
     }
 }

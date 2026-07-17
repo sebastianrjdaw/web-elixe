@@ -18,6 +18,8 @@ services:
         condition: service_started
     environment:
       COMPOSER_CACHE_DIR: /tmp/composer-cache
+      ELIXE_RUNTIME_ROLE: app
+      ELIXE_RUN_MIGRATIONS: "true"
 
   nginx:
     image: nginx:1.27-alpine
@@ -31,18 +33,31 @@ services:
     depends_on:
       - app
 
+  node-init:
+    image: node:22-alpine
+    working_dir: /var/www/html
+    user: root
+    command: sh -lc "chown -R ${LOCAL_UID:-1000}:${LOCAL_GID:-1000} /var/www/html/node_modules && if [ -e /var/www/html/public/hot ]; then chown ${LOCAL_UID:-1000}:${LOCAL_GID:-1000} /var/www/html/public/hot; fi"
+    volumes:
+      - .:/var/www/html
+      - node-modules:/var/www/html/node_modules
+
   node:
     image: node:22-alpine
     restart: unless-stopped
     working_dir: /var/www/html
-    command: sh -lc "npm install && npm run dev -- --host 0.0.0.0"
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    command: sh -lc "npm ci && npm run dev -- --host 0.0.0.0"
     ports:
       - "5173:5173"
     volumes:
       - .:/var/www/html
       - node-modules:/var/www/html/node_modules
     depends_on:
-      - app
+      app:
+        condition: service_started
+      node-init:
+        condition: service_completed_successfully
 
   queue:
     image: elixe-web-app
@@ -53,6 +68,8 @@ services:
     restart: unless-stopped
     working_dir: /var/www/html
     command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
+    environment:
+      ELIXE_RUNTIME_ROLE: worker
     volumes:
       - .:/var/www/html
       - app-vendor:/var/www/html/vendor
@@ -69,6 +86,8 @@ services:
     restart: unless-stopped
     working_dir: /var/www/html
     command: sh -lc "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"
+    environment:
+      ELIXE_RUNTIME_ROLE: scheduler
     volumes:
       - .:/var/www/html
       - app-vendor:/var/www/html/vendor
@@ -84,12 +103,12 @@ services:
     environment:
       MYSQL_DATABASE: elixe_ads
       MYSQL_USER: elixe
-      MYSQL_PASSWORD: secret
-      MYSQL_ROOT_PASSWORD: rootsecret
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-local-root-secret}
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prootsecret"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 10

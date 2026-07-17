@@ -17,6 +17,7 @@ class StoreAdviceLeadRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'submission_token' => ['nullable', 'uuid'],
             'type' => ['required', Rule::in(['venue', 'advertiser', 'other'])],
             'business_name' => ['nullable', 'required_if:type,venue', 'string', 'max:255'],
             'company_name' => ['nullable', 'required_if:type,advertiser', 'string', 'max:255'],
@@ -34,8 +35,19 @@ class StoreAdviceLeadRequest extends FormRequest
             'budget_range' => ['nullable', 'required_if:type,advertiser', 'string', 'max:120'],
             'preferred_contact_method' => ['required', Rule::in(['llamada', 'email', 'whatsapp', 'indiferente'])],
             'preferred_call_time' => ['required', Rule::in(['manana', 'mediodia', 'tarde', 'indiferente'])],
-            'selected_screen_ids' => ['array'],
-            'selected_screen_ids.*' => ['integer', 'exists:screens,id'],
+            'selected_screen_ids' => ['array', 'max:50'],
+            'selected_screen_ids.*' => [
+                'string',
+                'distinct',
+                Rule::exists('screens', 'public_id')->where(fn ($query) => $query
+                    ->whereNotNull('latitude')
+                    ->whereNotNull('longitude')
+                    ->where('web_visible_from_xibo', true)
+                    ->where('commercial_status', 'disponible')
+                    ->where(fn ($visibility) => $visibility
+                        ->whereNull('local_visibility_override')
+                        ->orWhere('local_visibility_override', true))),
+            ],
             'message' => ['nullable', 'required_if:type,other', 'string', 'max:4000'],
             'privacy_accepted' => ['accepted'],
             'cf_turnstile_response' => [config('services.turnstile.enabled') ? 'required' : 'nullable', 'string', 'max:2048'],
@@ -67,14 +79,32 @@ class StoreAdviceLeadRequest extends FormRequest
 
     public function messages(): array
     {
-        return [
-            'required' => 'El campo :attribute es obligatorio.',
-            'required_if' => 'El campo :attribute es obligatorio para este tipo de solicitud.',
-            'email' => 'Introduce un email valido.',
-            'phone.regex' => 'Introduce un telefono espanol valido.',
-            'accepted' => 'Debes aceptar la :attribute.',
-            'in' => 'El valor seleccionado en :attribute no es valido.',
-        ];
+        return app()->getLocale() === 'gl'
+            ? [
+                'required' => 'O campo :attribute é obrigatorio.',
+                'required_if' => 'O campo :attribute é obrigatorio para este tipo de solicitude.',
+                'email' => 'Introduce un correo electrónico válido.',
+                'phone.regex' => 'Introduce un teléfono español válido.',
+                'accepted' => 'Debes aceptar a :attribute.',
+                'in' => 'O valor seleccionado en :attribute non é válido.',
+                'exists' => 'Unha das pantallas seleccionadas xa non está dispoñible.',
+            ]
+            : [
+                'required' => 'El campo :attribute es obligatorio.',
+                'required_if' => 'El campo :attribute es obligatorio para este tipo de solicitud.',
+                'email' => 'Introduce un email valido.',
+                'phone.regex' => 'Introduce un telefono espanol valido.',
+                'accepted' => 'Debes aceptar la :attribute.',
+                'in' => 'El valor seleccionado en :attribute no es valido.',
+                'exists' => 'Una de las pantallas seleccionadas ya no esta disponible.',
+            ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'phone' => preg_replace('/[\s.-]+/', '', (string) $this->input('phone')),
+        ]);
     }
 
     public function withValidator(Validator $validator): void
@@ -85,6 +115,7 @@ class StoreAdviceLeadRequest extends FormRequest
             }
 
             $response = Http::asForm()
+                ->retry(2, 200, throw: false)
                 ->timeout(5)
                 ->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
                     'secret' => config('services.turnstile.secret_key'),

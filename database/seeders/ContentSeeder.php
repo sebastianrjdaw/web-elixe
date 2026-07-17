@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\ContentBlock;
 use App\Models\Faq;
 use App\Models\LegalPage;
+use App\Models\ResponseTemplate;
 use App\Models\Setting;
 use Illuminate\Database\Seeder;
 
@@ -13,22 +14,26 @@ class ContentSeeder extends Seeder
     public function run(): void
     {
         foreach ($this->blocks() as $block) {
-            ContentBlock::updateOrCreate(['key' => $block['key']], $block);
+            ContentBlock::firstOrCreate(['key' => $block['key']], $block);
         }
 
         foreach ($this->faqs() as $faq) {
-            Faq::updateOrCreate([
+            Faq::firstOrCreate([
                 'category' => $faq['category'],
                 'question_es' => $faq['question_es'],
             ], $faq);
         }
 
         foreach ($this->legalPages() as $page) {
-            LegalPage::updateOrCreate(['slug' => $page['slug']], $page);
+            LegalPage::firstOrCreate(['slug' => $page['slug']], $page);
         }
 
         foreach ($this->settings() as $setting) {
-            Setting::updateOrCreate(['key' => $setting['key']], $setting);
+            Setting::firstOrCreate(['key' => $setting['key']], $setting);
+        }
+
+        foreach ($this->responseTemplates() as $template) {
+            ResponseTemplate::firstOrCreate(['key' => $template['key']], $template);
         }
     }
 
@@ -149,5 +154,90 @@ class ContentSeeder extends Seeder
             ['key' => 'business_hours', 'value' => 'Lunes a viernes, 9:00 - 18:00', 'label' => 'Horario de atencion', 'type' => 'text', 'is_public' => true],
             ['key' => 'leads_email', 'value' => env('ELIXE_LEADS_EMAIL', 'info@elixe.es'), 'label' => 'Email receptor de leads', 'type' => 'email', 'is_public' => false],
         ];
+    }
+
+    private function responseTemplates(): array
+    {
+        $templates = [];
+
+        foreach (['venue', 'advertiser', 'other'] as $type) {
+            $templates[] = [
+                'key' => "automatic_{$type}_es",
+                'name' => "Confirmación automática ({$type}, ES)",
+                'lead_type' => $type,
+                'locale' => 'es',
+                'subject' => 'Hemos recibido tu solicitud, {{contact_name}}',
+                'body' => "Hola {{contact_name}},\n\nHemos recibido tu solicitud sobre {{business_name}}. El equipo de Elixe revisará la información y se pondrá en contacto contigo por el medio indicado.\n\nGracias por confiar en Elixe.",
+                'is_active' => true,
+            ];
+            $templates[] = [
+                'key' => "automatic_{$type}_gl",
+                'name' => "Confirmación automática ({$type}, GL)",
+                'lead_type' => $type,
+                'locale' => 'gl',
+                'subject' => 'Recibimos a túa solicitude, {{contact_name}}',
+                'body' => "Ola {{contact_name}},\n\nRecibimos a túa solicitude sobre {{business_name}}. O equipo de Elixe revisará a información e porase en contacto contigo polo medio indicado.\n\nGrazas por confiar en Elixe.",
+                'is_active' => true,
+            ];
+        }
+
+        $templates[] = [
+            'key' => 'commercial_followup_es',
+            'name' => 'Seguimiento comercial (ES)',
+            'lead_type' => null,
+            'locale' => 'es',
+            'subject' => 'Siguiente paso para {{business_name}}',
+            'body' => "Hola {{contact_name}},\n\nHemos revisado tu solicitud y nos gustaría comentar contigo el siguiente paso. Puedes responder a este correo o indicarnos cuándo prefieres que te llamemos.\n\nUn saludo,\nEquipo Elixe",
+            'is_active' => true,
+        ];
+
+        $templates[] = [
+            'key' => 'commercial_followup_gl',
+            'name' => 'Seguimento comercial (GL)',
+            'lead_type' => null,
+            'locale' => 'gl',
+            'subject' => 'Seguinte paso para {{business_name}}',
+            'body' => "Ola {{contact_name}},\n\nRevisamos a túa solicitude e gustaríanos comentar contigo o seguinte paso. Podes responder a este correo ou indicarnos cando prefires que te chamemos.\n\nUn saúdo,\nEquipo Elixe",
+            'is_active' => true,
+        ];
+
+        $manualTemplates = [
+            'request_information' => [
+                'es' => ['Solicitud de información', 'Necesitamos un dato más sobre {{business_name}}', "Hola {{contact_name}},\n\nGracias por tu solicitud. Para poder revisarla necesitamos que nos facilites un poco más de información respondiendo a este correo.\n\nUn saludo,\nEquipo Elixe"],
+                'gl' => ['Solicitude de información', 'Necesitamos un dato máis sobre {{business_name}}', "Ola {{contact_name}},\n\nGrazas pola túa solicitude. Para poder revisala necesitamos que nos facilites un pouco máis de información respondendo a este correo.\n\nUn saúdo,\nEquipo Elixe"],
+            ],
+            'call_proposal' => [
+                'es' => ['Propuesta de llamada', '¿Hablamos sobre {{business_name}}?', "Hola {{contact_name}},\n\nNos gustaría comentar contigo las opciones disponibles. Responde a este correo con el día y la franja horaria que prefieras para una llamada.\n\nUn saludo,\nEquipo Elixe"],
+                'gl' => ['Proposta de chamada', 'Falamos sobre {{business_name}}?', "Ola {{contact_name}},\n\nGustaríanos comentar contigo as opcións dispoñibles. Responde a este correo co día e a franxa horaria que prefiras para unha chamada.\n\nUn saúdo,\nEquipo Elixe"],
+            ],
+            'appointment_confirmation' => [
+                'es' => ['Confirmación de cita', 'Confirmación de nuestra cita', "Hola {{contact_name}},\n\nTu cita con el equipo de Elixe queda confirmada. Si necesitas cambiarla, responde a este correo y buscaremos otra fecha.\n\nUn saludo,\nEquipo Elixe"],
+                'gl' => ['Confirmación de cita', 'Confirmación da nosa cita', "Ola {{contact_name}},\n\nA túa cita co equipo de Elixe queda confirmada. Se necesitas cambiala, responde a este correo e buscaremos outra data.\n\nUn saúdo,\nEquipo Elixe"],
+            ],
+            'not_viable' => [
+                'es' => ['Solicitud no viable', 'Actualización sobre tu solicitud', "Hola {{contact_name}},\n\nTras revisar la información, ahora mismo no podemos ofrecer una opción adecuada para {{business_name}}. Conservaremos tus datos únicamente durante el plazo informado en nuestra política de privacidad.\n\nGracias por pensar en Elixe."],
+                'gl' => ['Solicitude non viable', 'Actualización sobre a túa solicitude', "Ola {{contact_name}},\n\nTras revisar a información, agora mesmo non podemos ofrecer unha opción axeitada para {{business_name}}. Conservaremos os teus datos unicamente durante o prazo informado na nosa política de privacidade.\n\nGrazas por pensar en Elixe."],
+            ],
+            'thank_you' => [
+                'es' => ['Agradecimiento', 'Gracias por confiar en Elixe', "Hola {{contact_name}},\n\nGracias por confiar en Elixe para {{business_name}}. Seguimos a tu disposición para cualquier consulta.\n\nUn saludo,\nEquipo Elixe"],
+                'gl' => ['Agradecemento', 'Grazas por confiar en Elixe', "Ola {{contact_name}},\n\nGrazas por confiar en Elixe para {{business_name}}. Seguimos á túa disposición para calquera consulta.\n\nUn saúdo,\nEquipo Elixe"],
+            ],
+        ];
+
+        foreach ($manualTemplates as $key => $locales) {
+            foreach ($locales as $locale => [$name, $subject, $body]) {
+                $templates[] = [
+                    'key' => "{$key}_{$locale}",
+                    'name' => "{$name} (".strtoupper($locale).')',
+                    'lead_type' => null,
+                    'locale' => $locale,
+                    'subject' => $subject,
+                    'body' => $body,
+                    'is_active' => true,
+                ];
+            }
+        }
+
+        return $templates;
     }
 }

@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Mail\LeadConfirmation;
 use App\Mail\NewLeadNotification;
 use App\Models\Lead;
+use App\Models\Screen;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class AdviceLeadTest extends TestCase
@@ -143,6 +145,60 @@ class AdviceLeadTest extends TestCase
             return $mail->hasTo('ana@example.test')
                 && $mail->lead->is($lead);
         });
+    }
+
+    public function test_repeated_submission_token_creates_and_notifies_only_once(): void
+    {
+        Mail::fake();
+        config(['services.turnstile.enabled' => false]);
+        $payload = $this->validVenuePayload(['submission_token' => (string) Str::uuid()]);
+
+        $this->post(route('advice.store'), $payload)->assertRedirect(route('thanks'));
+        $this->post(route('advice.store'), $payload)->assertRedirect(route('thanks'));
+
+        $this->assertDatabaseCount('leads', 1);
+        Mail::assertQueued(NewLeadNotification::class, 1);
+        Mail::assertQueued(LeadConfirmation::class, 1);
+    }
+
+    public function test_advertiser_can_only_select_publicly_available_screens_by_public_id(): void
+    {
+        Mail::fake();
+        config(['services.turnstile.enabled' => false]);
+        $screen = Screen::create([
+            'xibo_display_id' => 40,
+            'public_code' => 'ELIXE-040',
+            'display_name' => 'Pantalla 40',
+            'latitude' => 43.3,
+            'longitude' => -8.4,
+            'web_visible_from_xibo' => true,
+            'commercial_status' => 'disponible',
+        ]);
+
+        $this->post(route('advice.store'), $this->validAdvertiserPayload([
+            'selected_screen_ids' => [$screen->public_id],
+        ]))->assertRedirect(route('thanks'));
+
+        $lead = Lead::firstOrFail();
+        $this->assertTrue($lead->screens()->whereKey($screen->id)->exists());
+
+        $screen->update(['local_visibility_override' => false]);
+
+        $this->from(route('advice'))->post(route('advice.store'), $this->validAdvertiserPayload([
+            'submission_token' => (string) Str::uuid(),
+            'selected_screen_ids' => [$screen->public_id],
+        ]))->assertSessionHasErrors('selected_screen_ids.0');
+    }
+
+    public function test_galician_submission_preserves_locale_and_redirects_to_galician_thanks_page(): void
+    {
+        Mail::fake();
+        config(['services.turnstile.enabled' => false]);
+
+        $this->post(route('gl.advice.store'), $this->validVenuePayload())
+            ->assertRedirect(route('gl.thanks'));
+
+        $this->assertSame('gl', Lead::firstOrFail()->locale);
     }
 
     private function validVenuePayload(array $overrides = []): array

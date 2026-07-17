@@ -44,5 +44,22 @@ class PublicScreensTest extends TestCase
         $this->assertArrayNotHasKey('publicCode', $payload);
         $this->assertArrayNotHasKey('address', $payload);
         $this->assertArrayNotHasKey('display_name', $payload);
+        $this->assertIsString($payload['id']);
+        $this->assertSame(26, strlen($payload['id']));
+    }
+
+    public function test_sitemap_contains_spanish_and_galician_urls(): void
+    {
+        config(['app.url' => 'https://elixe.example']);
+
+        $this->get('/sitemap.xml')
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/xml; charset=UTF-8')
+            ->assertSee('https://elixe.example/red-de-pantallas', false)
+            ->assertSee('https://elixe.example/gl/red-de-pantallas', false);
+
+        $this->get('/robots.txt')
+            ->assertOk()
+            ->assertSee('Sitemap: https://elixe.example/sitemap.xml', false);
     }
 }

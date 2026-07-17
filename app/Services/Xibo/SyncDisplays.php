@@ -6,16 +6,29 @@ use App\Models\Screen;
 use App\Models\SyncRun;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class SyncDisplays
 {
-    public function __construct(private readonly XiboService $xibo)
-    {
-    }
+    public function __construct(private readonly XiboService $xibo) {}
 
     public function run(?int $triggeredByUserId = null): SyncRun
     {
+        $lock = Cache::lock('xibo.sync-displays', 300);
+
+        if (! $lock->get()) {
+            return SyncRun::create([
+                'source' => 'xibo',
+                'status' => 'skipped',
+                'started_at' => now(),
+                'finished_at' => now(),
+                'error_message' => 'Ya hay una sincronizacion Xibo en curso.',
+                'triggered_by_user_id' => $triggeredByUserId,
+            ]);
+        }
+
         $run = SyncRun::create([
             'source' => 'xibo',
             'status' => 'running',
@@ -28,8 +41,8 @@ class SyncDisplays
         $skipped = 0;
 
         try {
-            $payload = $this->xibo->displays();
-            $displays = $this->extractRows($payload);
+            $displays = $this->xibo->allDisplays();
+            $seenDisplayIds = [];
 
             foreach ($displays as $display) {
                 $displayId = (int) Arr::get($display, 'displayId');
@@ -40,19 +53,46 @@ class SyncDisplays
                     continue;
                 }
 
+                $seenDisplayIds[] = $displayId;
+
                 $tags = $this->xibo->normalizeTags($display);
 
-                $screen = Screen::updateOrCreate(
-                    ['xibo_display_id' => $displayId],
-                    $this->screenAttributes($display, $tags)
-                );
+                DB::transaction(function () use ($displayId, $display, $tags, &$created, &$updated): void {
+                    $screen = Screen::updateOrCreate(
+                        ['xibo_display_id' => $displayId],
+                        $this->screenAttributes($display, $tags)
+                    );
 
-                $screen->wasRecentlyCreated ? $created++ : $updated++;
+                    $changed = $screen->wasRecentlyCreated || $screen->wasChanged();
 
-                foreach ($tags as $tag => $value) {
-                    $screen->tags()->updateOrCreate(['tag' => $tag], ['value' => $value]);
-                }
+                    if ($tags === []) {
+                        $changed = $screen->tags()->exists() || $changed;
+                        $screen->tags()->delete();
+                    } else {
+                        $changed = $screen->tags()->whereNotIn('tag', array_keys($tags))->delete() > 0 || $changed;
+
+                        foreach ($tags as $tag => $value) {
+                            $screenTag = $screen->tags()->updateOrCreate(['tag' => $tag], ['value' => $value]);
+                            $changed = $screenTag->wasRecentlyCreated || $screenTag->wasChanged() || $changed;
+                        }
+                    }
+
+                    if ($screen->wasRecentlyCreated) {
+                        $created++;
+                    } elseif ($changed) {
+                        $updated++;
+                    }
+                });
             }
+
+            $updated += Screen::query()
+                ->whereNotIn('xibo_display_id', $seenDisplayIds)
+                ->where('web_visible_from_xibo', true)
+                ->update([
+                    'web_visible_from_xibo' => false,
+                    'commercial_status' => 'retirada',
+                    'synced_at' => now(),
+                ]);
 
             $run->update([
                 'status' => 'success',
@@ -68,18 +108,11 @@ class SyncDisplays
                 'finished_at' => now(),
                 'error_message' => $exception->getMessage(),
             ]);
+        } finally {
+            $lock->release();
         }
 
         return $run->fresh();
-    }
-
-    private function extractRows(array $payload): array
-    {
-        if (array_is_list($payload)) {
-            return $payload;
-        }
-
-        return $payload['data'] ?? $payload['rows'] ?? [];
     }
 
     private function screenAttributes(array $display, array $tags): array

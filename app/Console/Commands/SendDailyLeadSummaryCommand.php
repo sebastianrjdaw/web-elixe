@@ -2,8 +2,11 @@
 
 namespace App\Console\Commands;
 
+use App\Mail\DailyLeadSummary;
 use App\Models\Lead;
+use App\Models\Setting;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Mail;
 
 class SendDailyLeadSummaryCommand extends Command
 {
@@ -13,9 +16,15 @@ class SendDailyLeadSummaryCommand extends Command
 
     public function handle(): int
     {
-        $count = Lead::whereDate('created_at', now()->subDay()->toDateString())->count();
+        $leads = Lead::query()
+            ->whereBetween('created_at', [now()->subDay()->startOfDay(), now()->subDay()->endOfDay()])
+            ->latest()
+            ->get();
 
-        $this->info("Leads received yesterday: {$count}");
+        Mail::to(Setting::getValue('leads_email', config('services.elixe.leads_email')))
+            ->queue(new DailyLeadSummary($leads));
+
+        $this->info("Daily lead summary queued: {$leads->count()} leads.");
 
         return self::SUCCESS;
     }
