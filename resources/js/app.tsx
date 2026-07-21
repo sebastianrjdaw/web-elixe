@@ -82,6 +82,16 @@ type AdminScreen = {
     warning?: string;
 };
 
+type ScreenOnboarding = {
+    id: number; status: string; internal_code: string; establishment_name: string;
+    contact_name?: string; contact_email?: string; contact_phone?: string; address?: string;
+    municipality?: string; province?: string; postal_code?: string; latitude?: number; longitude?: number;
+    location_type?: string; location_sector?: string; web_visible: boolean; commercial_status: string;
+    has_existing_screen: boolean; requires_elixe_screen: boolean; internet_available: boolean;
+    physical_location?: string; installation_notes?: string; advertising_restrictions?: string; internal_notes?: string;
+    creatorName?: string; reviewerName?: string; blockers: string[]; created_at?: string;
+};
+
 type ContentBlock = {
     id: number;
     key: string;
@@ -96,6 +106,8 @@ type ContentBlock = {
     title?: string;
     subtitle?: string;
     content?: string;
+    label?: string;
+    group?: string;
 };
 
 type Faq = {
@@ -266,40 +278,32 @@ function Layout({ children }: PropsWithChildren) {
 
 function AdminLayout({ children }: PropsWithChildren) {
     const logout = useForm({});
-    const flash = usePage<SharedPageProps>().props.flash;
+    const page = usePage<SharedPageProps>();
+    const flash = page.props.flash;
+    const path = page.url.split('?')[0];
+    const groups = [
+        { label: 'Trabajo diario', items: [{ href: '/admin', label: 'Resumen' }, { href: '/admin/leads', label: 'Leads' }, { href: '/admin/screens', label: 'Red de pantallas' }, { href: '/admin/screen-onboarding', label: 'Altas de pantalla' }] },
+        { label: 'Web y comunicación', items: [{ href: '/admin/content', label: 'Contenido de la web' }, { href: '/admin/faqs', label: 'Preguntas frecuentes' }, { href: '/admin/legal-pages', label: 'Textos legales' }, { href: '/admin/response-templates', label: 'Plantillas de email' }] },
+        { label: 'Sistema', items: [{ href: '/admin/sync-runs', label: 'Sincronizaciones' }, { href: '/admin/settings', label: 'Configuración' }, { href: '/admin/diagnostics', label: 'Diagnóstico' }] },
+    ];
+    const active = (href: string) => href === '/admin' ? path === href : path.startsWith(href);
 
     return (
-        <div className="min-h-screen bg-slate-100 text-slate-950">
-            <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-slate-200 bg-white p-5 lg:block">
-                <Link href="/admin" className="text-lg font-semibold">Elixe Admin</Link>
-                <nav className="mt-8 grid gap-1 text-sm">
-                    <Link className="admin-nav" href="/admin">Dashboard</Link>
-                    <Link className="admin-nav" href="/admin/leads">Leads</Link>
-                    <Link className="admin-nav" href="/admin/screens">Pantallas</Link>
-                    <Link className="admin-nav" href="/admin/sync-runs">Sync logs</Link>
-                    <Link className="admin-nav" href="/admin/content">Contenido</Link>
-                    <Link className="admin-nav" href="/admin/faqs">FAQs</Link>
-                    <Link className="admin-nav" href="/admin/legal-pages">Legales</Link>
-                    <Link className="admin-nav" href="/admin/response-templates">Plantillas de email</Link>
-                    <Link className="admin-nav" href="/admin/settings">Configuracion</Link>
-                    <Link className="admin-nav" href="/admin/diagnostics">Diagnosticos</Link>
+        <div className="admin-shell">
+            <aside className="admin-sidebar">
+                <Link href="/admin" className="admin-brand"><span className="admin-brand-mark">E</span><span>Elixe<strong>Administración</strong></span></Link>
+                <nav className="mt-8 grid gap-7 text-sm" aria-label="Navegación administrativa">
+                    {groups.map((group) => <div key={group.label}><p className="admin-nav-label">{group.label}</p><div className="mt-2 grid gap-1">{group.items.map((item) => <Link key={item.href} className={`admin-nav ${active(item.href) ? 'admin-nav-active' : ''}`} href={item.href} aria-current={active(item.href) ? 'page' : undefined}>{item.label}</Link>)}</div></div>)}
                 </nav>
             </aside>
-            <div className="lg:pl-64">
-                <header className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4">
-                    <nav className="flex max-w-[70vw] gap-2 overflow-x-auto text-sm lg:hidden" aria-label="Navegación administrativa">
-                        <Link className="admin-nav" href="/admin">Inicio</Link>
-                        <Link className="admin-nav" href="/admin/leads">Leads</Link>
-                        <Link className="admin-nav" href="/admin/screens">Pantallas</Link>
-                        <Link className="admin-nav" href="/admin/response-templates">Emails</Link>
-                        <Link className="admin-nav" href="/admin/diagnostics">Diagnóstico</Link>
+            <div className="admin-content-shell">
+                <header className="admin-topbar">
+                    <nav className="admin-mobile-nav" aria-label="Navegación administrativa móvil">
+                        {groups.flatMap((group) => group.items).map((item) => <Link key={item.href} className={`admin-nav whitespace-nowrap ${active(item.href) ? 'admin-nav-active' : ''}`} href={item.href}>{item.label}</Link>)}
                     </nav>
-                    <Link className="text-sm text-slate-600" href="/">Ver web</Link>
-                    <form onSubmit={(event) => { event.preventDefault(); logout.post('/admin/logout'); }}>
-                        <button className="btn-secondary py-2" type="submit">Salir</button>
-                    </form>
+                    <div className="ml-auto flex items-center gap-2"><Link className="btn-secondary py-2" href="/">Ver web pública</Link><form onSubmit={(event) => { event.preventDefault(); logout.post('/admin/logout'); }}><button className="btn-secondary py-2" type="submit">Salir</button></form></div>
                 </header>
-                <main className="mx-auto max-w-6xl px-5 py-8">
+                <main className="admin-main">
                     {flash?.success && <div className="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800" role="status">{flash.success}</div>}
                     {flash?.error && <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{flash.error}</div>}
                     {children}
@@ -391,6 +395,12 @@ function Home({ summary, screens = [], contentBlocks = {}, faqs = [] }: { summar
     const venues = contentBlocks.venues || {};
     const advertisers = contentBlocks.advertisers || {};
     const how = contentBlocks.how_it_works || {};
+    const featureScreens = contentBlocks.feature_screens || {};
+    const featureProximity = contentBlocks.feature_proximity || {};
+    const featureManagement = contentBlocks.feature_management || {};
+    const processNeeds = contentBlocks.process_needs || {};
+    const processProposal = contentBlocks.process_proposal || {};
+    const processLaunch = contentBlocks.process_launch || {};
 
     return (
         <Layout>
@@ -417,9 +427,9 @@ function Home({ summary, screens = [], contentBlocks = {}, faqs = [] }: { summar
                     <p className="text-lg">{tr('Convertimos pantallas en puntos de comunicación útiles. Tu local informa mejor; tu negocio se anuncia donde están sus clientes. Nosotros coordinamos la tecnología, el contenido y la red.', 'Convertemos pantallas en puntos de comunicación útiles. O teu local informa mellor; o teu negocio anúnciase onde está a súa clientela. Coordinamos a tecnoloxía, o contido e a rede.')}</p>
                 </div>
                 <div className="mt-12 grid gap-5 md:grid-cols-3">
-                    <article className="feature-card"><span className="feature-number">01</span><Monitor className="feature-icon" /><h3>{tr('Pantallas reales', 'Pantallas reais')}</h3><p>{tr('Instaladas en establecimientos de la red y gestionadas por Elixe.', 'Instaladas en establecementos da rede e xestionadas por Elixe.')}</p></article>
-                    <article className="feature-card"><span className="feature-number">02</span><MapPin className="feature-icon" /><h3>{tr('Impacto de proximidad', 'Impacto de proximidade')}</h3><p>{tr('Campañas por zona y tipo de local para llegar a una audiencia relevante.', 'Campañas por zona e tipo de local para chegar a unha audiencia relevante.')}</p></article>
-                    <article className="feature-card"><span className="feature-number">03</span><Sparkles className="feature-icon" /><h3>{tr('Gestión sencilla', 'Xestión sinxela')}</h3><p>{tr('Te acompañamos desde la idea hasta la publicación y el mantenimiento.', 'Acompañámoste desde a idea ata a publicación e o mantemento.')}</p></article>
+                    {featureScreens.key !== undefined && <article className="feature-card"><span className="feature-number">01</span><Monitor className="feature-icon" /><h3>{featureScreens.title}</h3><p>{featureScreens.content}</p></article>}
+                    {featureProximity.key !== undefined && <article className="feature-card"><span className="feature-number">02</span><MapPin className="feature-icon" /><h3>{featureProximity.title}</h3><p>{featureProximity.content}</p></article>}
+                    {featureManagement.key !== undefined && <article className="feature-card"><span className="feature-number">03</span><Sparkles className="feature-icon" /><h3>{featureManagement.title}</h3><p>{featureManagement.content}</p></article>}
                 </div>
             </section>
             <section className="network-stats bg-slate-950 py-6 dark:bg-black">
@@ -445,9 +455,9 @@ function Home({ summary, screens = [], contentBlocks = {}, faqs = [] }: { summar
                     <div className="grid gap-12 lg:grid-cols-[.8fr_1.2fr]">
                         <div><span className="eyebrow">{how.title || tr('Cómo funciona', 'Como funciona')}</span><h2 className="display-title mt-4">{tr('De la primera conversación a la pantalla.', 'Da primeira conversa á pantalla.')}</h2><p className="mt-5">{how.content || tr('Recogemos tu solicitud, revisamos el encaje y preparamos una propuesta personalizada.', 'Recibimos a túa solicitude, revisamos o encaixe e preparamos unha proposta personalizada.')}</p><Link className="btn-secondary mt-7" href="/asesoramiento">{tr('Cuéntanos tu idea', 'Cóntanos a túa idea')} <ArrowRight className="h-4 w-4" /></Link></div>
                         <ol className="process-list">
-                            <li><span>1</span><div><h3>{tr('Cuéntanos qué necesitas', 'Cóntanos que necesitas')}</h3><p>{tr('Local, campaña u otra consulta: un único formulario adaptado a ti.', 'Local, campaña ou outra consulta: un único formulario adaptado a ti.')}</p></div></li>
-                            <li><span>2</span><div><h3>{tr('Diseñamos la propuesta', 'Deseñamos a proposta')}</h3><p>{tr('Revisamos zonas, pantallas, objetivos y disponibilidad contigo.', 'Revisamos zonas, pantallas, obxectivos e dispoñibilidade contigo.')}</p></div></li>
-                            <li><span>3</span><div><h3>{tr('Lo ponemos en marcha', 'Poñémolo en marcha')}</h3><p>{tr('Elixe gestiona la configuración, la publicación y el seguimiento.', 'Elixe xestiona a configuración, a publicación e o seguimento.')}</p></div></li>
+                            {processNeeds.key !== undefined && <li><span>1</span><div><h3>{processNeeds.title}</h3><p>{processNeeds.content}</p></div></li>}
+                            {processProposal.key !== undefined && <li><span>2</span><div><h3>{processProposal.title}</h3><p>{processProposal.content}</p></div></li>}
+                            {processLaunch.key !== undefined && <li><span>3</span><div><h3>{processLaunch.title}</h3><p>{processLaunch.content}</p></div></li>}
                         </ol>
                     </div>
                 </div>
@@ -819,10 +829,14 @@ function AdminDashboard({ metrics, lastSync, recentLeads = [] }: { metrics: Reco
                 <Stat label="leads semana" value={metrics.weekLeads || 0} />
                 <Stat label="leads pendientes" value={metrics.pendingLeads || 0} />
                 <Stat label="pantallas visibles" value={metrics.visibleScreens || 0} />
+                <Stat label="pantallas totales" value={metrics.totalScreens || 0} />
+                <Stat label="pantallas disponibles" value={metrics.availableScreens || 0} />
+                <Stat label="altas pendientes" value={metrics.pendingOnboarding || 0} />
                 <Stat label="pantallas incompletas" value={metrics.incompleteScreens || 0} />
                 <Stat label="locales" value={metrics.venueLeads || 0} />
                 <Stat label="anunciantes" value={metrics.advertiserLeads || 0} />
             </div>
+            <div className="panel mt-6"><h2>Acciones rápidas</h2><div className="mt-4 flex flex-wrap gap-3"><Link className="btn-primary" href="/admin/screen-onboarding/create">Nueva solicitud de alta</Link><Link className="btn-secondary" href="/admin/leads?status=nuevo">Ver leads nuevos</Link><Link className="btn-secondary" href="/admin/screens">Consultar red</Link></div></div>
             <div className="panel mt-6">
                 <h2>Ultima sincronizacion</h2>
                 <p>{lastSync ? `${lastSync.status} - ${lastSync.startedAt || lastSync.started_at || ''}` : 'Sin sincronizaciones registradas.'}</p>
@@ -1015,6 +1029,43 @@ function AdminScreens({ screens, filters = {} }: { screens: Paginator<AdminScree
     );
 }
 
+function AdminScreenOnboardingIndex({ requests, statuses, filters = {} }: { requests: Paginator<ScreenOnboarding>; statuses: string[]; filters?: { status?: string } }) {
+    const filter = useForm({ status: filters.status || '' });
+    return <AdminLayout>
+        <div className="section-head"><div><h1>Altas de pantalla</h1><p>Prepara establecimientos y pantallas sin utilizar términos técnicos de Xibo.</p></div><Link className="btn-primary" href="/admin/screen-onboarding/create">Nueva solicitud</Link></div>
+        <form className="panel mb-5 flex flex-wrap items-end gap-3" onSubmit={(e) => { e.preventDefault(); filter.get('/admin/screen-onboarding', { preserveState: true }); }}><label><span className="text-xs text-slate-500">Estado</span><select className="input mt-1 min-w-52" value={filter.data.status} onChange={(e) => filter.setData('status', e.target.value)}><option value="">Todos</option>{statuses.map((status) => <option key={status} value={status}>{status.replace(/_/g, ' ')}</option>)}</select></label><button className="btn-secondary">Filtrar</button></form>
+        <div className="admin-table"><table><thead><tr><th>Establecimiento</th><th>Ubicación</th><th>Estado</th><th>Preparación</th><th /></tr></thead><tbody>{requests.data.map((item) => <tr key={item.id}><td><strong>{item.establishment_name}</strong><span>{item.internal_code}</span><span>Creado por {item.creatorName || '-'}</span></td><td>{[item.municipality, item.province].filter(Boolean).join(', ') || 'Pendiente'}</td><td><Badge tone={item.status === 'aprobado' || item.status === 'activo' ? 'green' : item.status === 'error_xibo' ? 'red' : 'amber'}>{item.status.replace(/_/g, ' ')}</Badge></td><td>{item.blockers.length ? <span>{item.blockers.length} datos pendientes</span> : <Badge tone="green">Lista para revisar</Badge>}</td><td><Link className="btn-secondary py-2" href={`/admin/screen-onboarding/${item.id}/edit`}>Abrir</Link></td></tr>)}{requests.data.length === 0 && <tr><td colSpan={5}>No hay solicitudes con estos filtros.</td></tr>}</tbody></table></div><Pagination page={requests} />
+    </AdminLayout>;
+}
+
+function AdminScreenOnboardingForm({ onboarding, options, xiboWriteAvailable }: { onboarding?: ScreenOnboarding | null; options: { locationTypes: string[]; locationSectors: string[]; commercialStatuses: string[] }; xiboWriteAvailable: boolean }) {
+    const [step, setStep] = useState(1);
+    const form = useForm({
+        internal_code: onboarding?.internal_code || '', establishment_name: onboarding?.establishment_name || '', contact_name: onboarding?.contact_name || '', contact_email: onboarding?.contact_email || '', contact_phone: onboarding?.contact_phone || '',
+        address: onboarding?.address || '', municipality: onboarding?.municipality || '', province: onboarding?.province || '', postal_code: onboarding?.postal_code || '', latitude: onboarding?.latitude?.toString() || '', longitude: onboarding?.longitude?.toString() || '',
+        location_type: onboarding?.location_type || '', location_sector: onboarding?.location_sector || '', has_existing_screen: onboarding?.has_existing_screen || false, requires_elixe_screen: onboarding?.requires_elixe_screen || false, internet_available: onboarding?.internet_available || false,
+        physical_location: onboarding?.physical_location || '', installation_notes: onboarding?.installation_notes || '', web_visible: onboarding?.web_visible || false, commercial_status: onboarding?.commercial_status || 'privado', advertising_restrictions: onboarding?.advertising_restrictions || '', internal_notes: onboarding?.internal_notes || '',
+    });
+    const action = useForm({});
+    const editable = !onboarding || ['borrador', 'pendiente_revision'].includes(onboarding.status);
+    const save = () => onboarding ? form.patch(`/admin/screen-onboarding/${onboarding.id}`) : form.post('/admin/screen-onboarding');
+    const steps = ['Establecimiento', 'Ubicación', 'Pantalla', 'Publicación', 'Revisión'];
+    const textField = (name: keyof typeof form.data, label: string, type = 'text', help?: string) => <label><span className="text-sm font-medium text-slate-700">{label}</span><input className="input mt-1" type={type} value={String(form.data[name])} onChange={(e) => form.setData(name, e.target.value as never)} disabled={!editable} />{help && <small className="mt-1 block text-slate-500">{help}</small>}{form.errors[name] && <span className="field-error">{form.errors[name]}</span>}</label>;
+    return <AdminLayout>
+        <div className="section-head"><div><h1>{onboarding ? onboarding.establishment_name : 'Nueva alta de pantalla'}</h1><p>Completa los cinco pasos. Puedes guardar el borrador y continuar más tarde.</p></div>{onboarding && <Badge tone={onboarding.status === 'aprobado' ? 'green' : 'amber'}>{onboarding.status.replace(/_/g, ' ')}</Badge>}</div>
+        <ol className="mb-6 grid gap-2 sm:grid-cols-5">{steps.map((label, index) => <li key={label}><button type="button" onClick={() => setStep(index + 1)} className={`w-full rounded-lg border px-3 py-3 text-left text-sm ${step === index + 1 ? 'border-sky-500 bg-sky-50 text-sky-900' : 'border-slate-200 bg-white'}`}><strong>{index + 1}.</strong> {label}</button></li>)}</ol>
+        <form className="panel" onSubmit={(e) => { e.preventDefault(); save(); }}>
+            {step === 1 && <div className="grid gap-4 md:grid-cols-2">{textField('internal_code', 'Nombre interno de la pantalla', 'text', 'Sirve para identificarla dentro de Elixe y Xibo; no se muestra en la web.')}{textField('establishment_name', 'Nombre del establecimiento')}{textField('contact_name', 'Persona de contacto')}{textField('contact_email', 'Email', 'email')}{textField('contact_phone', 'Teléfono', 'tel')}<label><span className="text-sm font-medium">Tipo de local</span><select className="input mt-1" value={form.data.location_type} onChange={(e) => form.setData('location_type', e.target.value)} disabled={!editable}><option value="">Seleccionar</option>{options.locationTypes.map((v) => <option key={v} value={v}>{v.replace(/_/g, ' ')}</option>)}</select></label><label><span className="text-sm font-medium">Sector</span><select className="input mt-1" value={form.data.location_sector} onChange={(e) => form.setData('location_sector', e.target.value)} disabled={!editable}><option value="">Seleccionar</option>{options.locationSectors.map((v) => <option key={v}>{v}</option>)}</select></label></div>}
+            {step === 2 && <div className="grid gap-4 md:grid-cols-2">{textField('address', 'Dirección')}{textField('municipality', 'Municipio')}{textField('province', 'Provincia')}{textField('postal_code', 'Código postal')}{textField('latitude', 'Latitud', 'number', 'Puedes copiar las coordenadas desde el marcador de tu aplicación de mapas.')}{textField('longitude', 'Longitud', 'number')}</div>}
+            {step === 3 && <div className="grid gap-4 md:grid-cols-2"><label className="check"><input type="checkbox" checked={form.data.has_existing_screen} onChange={(e) => form.setData('has_existing_screen', e.target.checked)} disabled={!editable} /> Ya tiene pantalla</label><label className="check"><input type="checkbox" checked={form.data.requires_elixe_screen} onChange={(e) => form.setData('requires_elixe_screen', e.target.checked)} disabled={!editable} /> Necesita pantalla proporcionada por Elixe</label><label className="check"><input type="checkbox" checked={form.data.internet_available} onChange={(e) => form.setData('internet_available', e.target.checked)} disabled={!editable} /> Tiene conexión a Internet</label>{textField('physical_location', 'Ubicación dentro del local')}<label className="md:col-span-2"><span className="text-sm font-medium">Observaciones de instalación</span><textarea className="input mt-1 min-h-28" value={form.data.installation_notes} onChange={(e) => form.setData('installation_notes', e.target.value)} disabled={!editable} /></label></div>}
+            {step === 4 && <div className="grid gap-4 md:grid-cols-2"><label className="check"><input type="checkbox" checked={form.data.web_visible} onChange={(e) => form.setData('web_visible', e.target.checked)} disabled={!editable} /> Visible en la web <small>Sí: podrá aparecer públicamente cuando esté disponible.</small></label><label><span className="text-sm font-medium">Estado comercial</span><select className="input mt-1" value={form.data.commercial_status} onChange={(e) => form.setData('commercial_status', e.target.value)} disabled={!editable}>{options.commercialStatuses.map((v) => <option key={v}>{v}</option>)}</select></label><label><span className="text-sm font-medium">Restricciones publicitarias</span><textarea className="input mt-1 min-h-28" value={form.data.advertising_restrictions} onChange={(e) => form.setData('advertising_restrictions', e.target.value)} disabled={!editable} /></label><label><span className="text-sm font-medium">Notas internas</span><textarea className="input mt-1 min-h-28" value={form.data.internal_notes} onChange={(e) => form.setData('internal_notes', e.target.value)} disabled={!editable} /></label></div>}
+            {step === 5 && <div><h2>Revisión</h2><dl className="mt-4 grid gap-4 text-sm md:grid-cols-3"><div><dt className="text-slate-500">Establecimiento</dt><dd>{form.data.establishment_name || 'Pendiente'}</dd></div><div><dt className="text-slate-500">Ubicación</dt><dd>{[form.data.address, form.data.municipality, form.data.province].filter(Boolean).join(', ') || 'Pendiente'}</dd></div><div><dt className="text-slate-500">Clasificación</dt><dd>{form.data.location_type || '-'} · {form.data.location_sector || '-'}</dd></div><div><dt className="text-slate-500">Pantalla</dt><dd>{form.data.has_existing_screen ? 'Ya dispone de pantalla' : form.data.requires_elixe_screen ? 'Elixe debe suministrarla' : 'Por definir'}</dd></div><div><dt className="text-slate-500">Publicación</dt><dd>{form.data.web_visible ? 'Visible' : 'Interna'} · {form.data.commercial_status}</dd></div></dl>{onboarding?.blockers?.length ? <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4"><strong>No se puede preparar el alta:</strong><ul className="mt-2 list-disc pl-5">{onboarding.blockers.map((b) => <li key={b}>{b}</li>)}</ul></div> : null}<p className="mt-5 rounded-lg bg-slate-50 p-4 text-sm">La escritura directa en Xibo está {xiboWriteAvailable ? 'disponible con confirmación' : 'desactivada hasta verificar los endpoints de la instalación'}.</p></div>}
+            {(form.errors as Record<string, string>).onboarding && <p className="field-error mt-4" role="alert">{(form.errors as Record<string, string>).onboarding}</p>}
+            <div className="mt-6 flex flex-wrap gap-3 border-t border-slate-200 pt-5">{editable && <button className="btn-primary" disabled={form.processing}>Guardar borrador</button>}{step > 1 && <button className="btn-secondary" type="button" onClick={() => setStep(step - 1)}>Anterior</button>}{step < 5 && <button className="btn-secondary" type="button" onClick={() => setStep(step + 1)}>Siguiente</button>}{onboarding?.status === 'borrador' && <button className="btn-secondary" type="button" onClick={() => action.post(`/admin/screen-onboarding/${onboarding.id}/submit`)}>Enviar a revisión</button>}{onboarding?.status === 'pendiente_revision' && <button className="btn-secondary" type="button" onClick={() => window.confirm('¿Aprobar y preparar esta alta?') && action.post(`/admin/screen-onboarding/${onboarding.id}/approve`)}>Aprobar y preparar</button>}{onboarding && !['activo', 'enviado_a_xibo', 'descartado'].includes(onboarding.status) && <button className="btn-secondary" type="button" onClick={() => window.confirm('¿Descartar esta solicitud?') && action.post(`/admin/screen-onboarding/${onboarding.id}/discard`)}>Descartar</button>}</div>
+        </form>
+    </AdminLayout>;
+}
+
 function AdminSyncRuns({ runs }: { runs: Paginator<any> }) {
     return (
         <AdminLayout>
@@ -1103,21 +1154,24 @@ function ContentBlockForm({ block }: { block: ContentBlock }) {
     });
 
     return (
-        <form className="panel grid gap-3 md:grid-cols-2" onSubmit={(event) => { event.preventDefault(); form.patch(`/admin/content/${block.id}`); }}>
-            <div className="md:col-span-2 flex items-center justify-between"><h3>{block.key}</h3><label className="check"><input type="checkbox" checked={form.data.active} onChange={(e) => form.setData('active', e.target.checked)} /> Activo</label></div>
-            <input className="input" placeholder="Titulo ES" value={form.data.title_es} onChange={(e) => form.setData('title_es', e.target.value)} />
-            <input className="input" placeholder="Titulo GL" value={form.data.title_gl} onChange={(e) => form.setData('title_gl', e.target.value)} />
-            <textarea className="input" placeholder="Subtitulo ES" value={form.data.subtitle_es} onChange={(e) => form.setData('subtitle_es', e.target.value)} />
-            <textarea className="input" placeholder="Subtitulo GL" value={form.data.subtitle_gl} onChange={(e) => form.setData('subtitle_gl', e.target.value)} />
-            <textarea className="input" placeholder="Contenido ES" value={form.data.content_es} onChange={(e) => form.setData('content_es', e.target.value)} />
-            <textarea className="input" placeholder="Contenido GL" value={form.data.content_gl} onChange={(e) => form.setData('content_gl', e.target.value)} />
-            <button className="btn-primary md:col-span-2" disabled={form.processing}>Guardar bloque</button>
-        </form>
+        <details className="admin-editor" open={block.key === 'hero'}>
+            <summary><span><strong>{block.label || block.key}</strong><small>{block.active ? 'Visible en la web' : 'Oculto en la web'}</small></span><Badge tone={block.active ? 'green' : 'slate'}>{block.active ? 'Activo' : 'Oculto'}</Badge></summary>
+            <form className="grid gap-5 border-t border-slate-200 p-5 md:grid-cols-2" onSubmit={(event) => { event.preventDefault(); form.patch(`/admin/content/${block.id}`, { preserveScroll: true }); }}>
+                <label className="admin-field"><span>Título en español</span><input className="input" value={form.data.title_es} onChange={(e) => form.setData('title_es', e.target.value)} /></label>
+                <label className="admin-field"><span>Título en gallego</span><input className="input" value={form.data.title_gl} onChange={(e) => form.setData('title_gl', e.target.value)} /></label>
+                <label className="admin-field"><span>Subtítulo en español</span><textarea className="input" value={form.data.subtitle_es} onChange={(e) => form.setData('subtitle_es', e.target.value)} /></label>
+                <label className="admin-field"><span>Subtítulo en gallego</span><textarea className="input" value={form.data.subtitle_gl} onChange={(e) => form.setData('subtitle_gl', e.target.value)} /></label>
+                <label className="admin-field"><span>Contenido en español</span><textarea className="input" value={form.data.content_es} onChange={(e) => form.setData('content_es', e.target.value)} /></label>
+                <label className="admin-field"><span>Contenido en gallego</span><textarea className="input" value={form.data.content_gl} onChange={(e) => form.setData('content_gl', e.target.value)} /></label>
+                <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 md:col-span-2 sm:flex-row sm:items-center sm:justify-between"><label className="check"><input type="checkbox" checked={form.data.active} onChange={(e) => form.setData('active', e.target.checked)} /> Mostrar este bloque en la web</label><button className="btn-primary min-w-40" disabled={form.processing}>{form.processing ? 'Guardando…' : 'Guardar cambios'}</button></div>
+            </form>
+        </details>
     );
 }
 
 function AdminContentBlocks({ blocks }: { blocks: ContentBlock[] }) {
-    return <AdminLayout><div className="section-head"><div><h1>Contenido</h1><p>Bloques editables ES/GL para la landing.</p></div></div><div className="grid gap-5">{blocks.map((block) => <ContentBlockForm key={block.id} block={block} />)}</div></AdminLayout>;
+    const groups = [...new Set(blocks.map((block) => block.group || 'Contenido'))];
+    return <AdminLayout><div className="section-head"><div><span className="admin-eyebrow">Web pública</span><h1>Contenido de la web</h1><p>Edita textos, cards y pasos de la portada en español y gallego.</p></div><Link className="btn-secondary" href="/" target="_blank">Abrir vista pública</Link></div><div className="mt-8 grid gap-8">{groups.map((group) => <section key={group}><div className="mb-3"><h2 className="text-xl">{group}</h2><p className="text-sm">Pulsa un bloque para desplegar sus campos.</p></div><div className="grid gap-3">{blocks.filter((block) => (block.group || 'Contenido') === group).map((block) => <ContentBlockForm key={block.id} block={block} />)}</div></section>)}</div></AdminLayout>;
 }
 
 function FaqForm({ faq }: { faq?: Faq }) {
@@ -1238,6 +1292,8 @@ const pages: Record<string, React.ComponentType<any>> = {
     'Admin/Leads': AdminLeads,
     'Admin/LeadDetail': AdminLeadDetail,
     'Admin/Screens': AdminScreens,
+    'Admin/ScreenOnboardingIndex': AdminScreenOnboardingIndex,
+    'Admin/ScreenOnboardingForm': AdminScreenOnboardingForm,
     'Admin/SyncRuns': AdminSyncRuns,
     'Admin/ContentBlocks': AdminContentBlocks,
     'Admin/Faqs': AdminFaqs,

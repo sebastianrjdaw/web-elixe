@@ -36,7 +36,7 @@ class ContentBlockController extends Controller
 
         AuditLogger::record('content.updated', $contentBlock, $old, $contentBlock->only(array_keys($data)), $request);
 
-        return back();
+        return back()->with('success', 'Contenido actualizado correctamente.');
     }
 
     private function payload(ContentBlock $block): array
@@ -52,6 +52,19 @@ class ContentBlockController extends Controller
             'content_gl' => $block->content_gl,
             'active' => $block->active,
             'sort_order' => $block->sort_order,
+            'label' => $this->labels()[$block->key] ?? $block->key,
+            'group' => str_starts_with($block->key, 'feature_') ? 'Cards de beneficios' : (str_starts_with($block->key, 'process_') ? 'Pasos del proceso' : 'Secciones principales'),
+        ];
+    }
+
+    private function labels(): array
+    {
+        return [
+            'hero' => 'Cabecera principal', 'venues' => 'Card para locales', 'advertisers' => 'Card para anunciantes',
+            'how_it_works' => 'Introducción: cómo funciona', 'feature_screens' => 'Card 1: pantallas reales',
+            'feature_proximity' => 'Card 2: impacto de proximidad', 'feature_management' => 'Card 3: gestión sencilla',
+            'process_needs' => 'Paso 1: cuéntanos qué necesitas', 'process_proposal' => 'Paso 2: diseñamos la propuesta',
+            'process_launch' => 'Paso 3: puesta en marcha',
         ];
     }
 }

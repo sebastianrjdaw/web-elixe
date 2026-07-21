@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Lead;
 use App\Models\Screen;
+use App\Models\ScreenOnboardingRequest;
 use App\Models\SyncRun;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -22,6 +23,9 @@ class DashboardController extends Controller
                 'pendingLeads' => Lead::whereNotIn('status', ['ganado', 'perdido', 'descartado'])->count(),
                 'visibleScreens' => Screen::publiclyVisible()->count(),
                 'incompleteScreens' => $screens->filter->missingFields()->count(),
+                'totalScreens' => $screens->count(),
+                'availableScreens' => $screens->where('commercial_status', 'disponible')->count(),
+                'pendingOnboarding' => ScreenOnboardingRequest::whereIn('status', ['borrador', 'pendiente_revision', 'aprobado', 'error_xibo'])->count(),
                 'venueLeads' => Lead::where('type', 'venue')->count(),
                 'advertiserLeads' => Lead::where('type', 'advertiser')->count(),
             ],

@@ -41,3 +41,8 @@ Debe repetirse en el dominio de staging con credenciales reales: captcha, entreg
 - Aprobación comercial de taxonomías y criterios de métricas.
 
 No se implementaron pagos, contratación automática, subida de creatividades ni Proof of Play no verificable.
+# QA — Alta guiada de pantallas (2026-07-21)
+
+Se añadieron migración, modelo, request validado, controlador, rutas, asistente de cinco pasos, listado, métricas, acciones rápidas, auditoría y tests de creación/transiciones/incompletos/duplicados/permisos. La escritura Xibo permanece desactivada por ausencia de Swagger verificado.
+
+El frontend pasó `tsc --noEmit`, ESLint y el build de Vite; solo aparecen los avisos preexistentes de assets públicos resueltos en runtime. `git diff --check` también pasó. La suite completa de Laravel se ejecutó en Docker: 37 tests y 189 aserciones correctas. Incluye edición/ocultación de cards públicas, auditoría CMS y transiciones protegidas del alta. Antes de desplegar queda recomendada una revisión visual responsive con datos reales.
